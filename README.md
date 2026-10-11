@@ -15,6 +15,7 @@ A Nintendo Switch Emulation, Recompilation, Development and Launcher Toolkit —
 <p align="center">
   <a href="#status">Status</a> |
   <a href="#static-recompilation">Static recompilation</a> |
+  <a href="#performance">Performance</a> |
   <a href="docs/releases/v14.0.1.md">Changes in v14.0.1</a> |
   <a href="#building">Building</a> |
   <a href="#license">License</a>
@@ -22,7 +23,7 @@ A Nintendo Switch Emulation, Recompilation, Development and Launcher Toolkit —
 
 ---
 
-> **Development is starting again under new management, help wanted**
+> **Current release: [suyu v14.0.1](https://github.com/suyu-emu/suyu-main/releases/tag/v14.0.1)**
 >
 > [`suyu-emu/suyu-v0.0.4`](https://github.com/suyu-emu/suyu-v0.0.4) is a public
 > archive and no further development was planned there. This repository picks it up
@@ -32,75 +33,71 @@ A Nintendo Switch Emulation, Recompilation, Development and Launcher Toolkit —
 > Development snapshots identify their commit and branch. See
 > [PROVENANCE.md](PROVENANCE.md) for the repository lineage.
 >
-> Work happens on the `mk8-recomp` branch (soon to be renamed Main), driven by
+> The default development branch is `mk8-recomp`. Recompiler work is also maintained in
 > [mk8-recomp](https://github.com/dougchansan/mk8-recomp) — a project statically
-> recompiling Switch titles to native x86-64 using this recompiler. Fixes that
-> are not recompiler-specific are listed below and are useful to anyone running
-> suyu.
+> recompiling Switch titles using this recompiler. General emulator and launcher
+> fixes are maintained here alongside that work.
 
 ## About
 
 suyu is a Nintendo Switch emulator and AArch64 native recompiler written in C++. It can run decrypted Switch titles using either:
 
-- **High Level Emulation mode** — full hardware-level emulation via the suyu core (GPU, CPU, audio, services)
-- **Recompiler mode** — ahead-of-time static recompilation of Switch AArch64 game code to native x86-64 executables, bundled with suyu's HLE backend
+- **Ordinary emulation** — Dynarmic JIT CPU execution with suyu's GPU, audio and service emulation.
+- **Static or Hybrid recompilation** — ahead-of-time compilation of AArch64 game code, using the same GPU, audio and HLE services. Hybrid permits JIT fallback; Static requires compiled coverage.
 
 Based on [Eden](https://git.eden-emu.dev/eden-emu/eden), with suyu's own improvements to UI, recompiler, and platform support.
 
 ## Status
 
-Current version: **v14.0.1**. Releases now use major.minor.patch numbering.
-See the [v14.0.1 release notes](docs/releases/v14.0.1.md) for safer graphics defaults,
-complete advanced graphics controls, and an effective Fast GPU Time off switch.
-The Ubuntu 24.04 x86-64 AppImage remains available.
+**v14.0.1 is the latest stable release**, superseding v0.0.14. Versions now use
+major.minor.patch numbering. All 11 jobs in the [tagged release workflow](https://github.com/suyu-emu/suyu-main/actions/runs/38168944029)
+passed, including platform builds, graphics-settings tests and final package checks.
 
-Bounded Windows Static playtests verified MK8D, Odyssey, TOTK and Xenoblade
-Chronicles 3 gameplay with zero JIT transitions and clean exits. The release notes
-record the tested versions, scenes, FPS observations and limits.
+Graphics pipeline libraries and Fast GPU Time are **off by default**. Graphics →
+Advanced exposes the graphics hacks and Vulkan extension controls, supports global
+and per-game settings, and scrolls on smaller windows. Explicit user opt-ins are
+preserved. See the [release notes](docs/releases/v14.0.1.md).
 
-Platforms: Windows and Linux both build and run. macOS (arm64) builds and runs:
-games boot under Vulkan/MoltenVK with the bundled MoltenVK library, and MK8D
-races at 59–60 fps on the JIT; see [macOS](#macos). A RetroArch (libretro) core
-builds for Windows, Linux and macOS. Android: the APK and an opt-in ARM64
-libretro core build, but have run only in a software emulator; real devices are
-untested. iOS is in development. FreeBSD has builds as well.
+### Released platforms
 
-Linux needs five things Windows does not, all handled by
-[`scripts/build-suyu.sh`][bld] in the consuming project:
+| Target | Official v14.0.1 downloads | Current validation |
+| --- | --- | --- |
+| Windows x86-64 | GUI/CLI ZIP; libretro ZIP | Release CI and four bounded Static game playtests |
+| Linux x86-64 | Tarball; Ubuntu 24.04 AppImage; libretro tarball | Release CI, package/source checks and AppImage startup checks |
+| macOS arm64 | Application ZIP; libretro ZIP | Release CI; Vulkan uses bundled MoltenVK |
+| Android arm64 | APK; libretro ZIP | Release CI; real-device gameplay remains unqualified |
 
-- CMake 3.31 (`CMakeModules/CPMUtil.cmake` requires it; Ubuntu 24.04 ships 3.28)
-- fmt 10 or newer — distro fmt 9 lacks `format_string::get()`; older copies
-  now select the pinned bundled release automatically
-- Qt6 Charts, which Ubuntu packages separately
-- system Boost
-- skipping the `externals/ownfoil` submodule, whose own nested submodule no
-  longer resolves; nothing in suyu's CMake references it
+[Download v14.0.1](https://github.com/suyu-emu/suyu-main/releases/tag/v14.0.1).
+Project, dependency and AppImage corresponding-source archives accompany the
+downloads. Official packages contain no games, keys or firmware.
 
-Building on Linux found two defects that MSVC had silently accepted: literal
-carriage returns inside string literals, and a boost forwarding header that
-resolved only where CPM had fetched boost.
+iOS has experimental no-JIT source/probe support. FreeBSD and Linux arm64 have
+platform code paths, but none of these has an official package or a qualifying
+job in the current release workflow. Their presence in the source does not imply
+the same support level as the released targets.
 
-[bld]: https://github.com/dougchansan/mk8-recomp/blob/main/scripts/build-suyu.sh
-
-
-There will be a ROADMAP.MD for suyu's plans as a project soon.
+Windows Static opening-scene checks passed for Mario Kart 8 Deluxe, Super Mario
+Odyssey, Tears of the Kingdom and Xenoblade Chronicles 3: rendering and input
+response were reviewed, with clean exits and zero JIT transitions. These are
+bounded compatibility checks; see [Performance](#performance) for their FPS scope.
 
 ## Static recompilation
 
 **File > Export Game** turns a game into its own package. On Windows, a **Build**
 export is a program with your settings, optional shader cache and automatic
 controller setup, and can be added to Steam directly. Linux and macOS exports are
-Source only. An export contains no game files, keys or firmware: every time it starts
-it reads your own game file and decrypts it with the keys installed in suyu, so it
-does not run without them. Hybrid and static exports (Source included) contain code
-translated from the game, which only runs that way. An export is a local package, not
-an official suyu release; official suyu downloads contain no game material. See the
+Source only. The default Reference package reads your original game file at launch
+using the keys installed in suyu. The optional Portable package copies encrypted
+game, update and DLC files into the local export, bound to the same console's keys;
+it still requires those keys. Keys and firmware are never copied into an export.
+Hybrid and Static exports, including Source output, contain translated game code.
+An export is a local package; official suyu releases contain no game material. See the
 [Export Game guide](docs/user/GameExport.md).
 
-Static and Hybrid execution are experimental and tested on MK8D. In its race, a
-v0.0.11 static export runs at about 56 fps on Windows (with Clang installed) and
-about 60 on macOS and Linux, against 60 for the JIT; see the
-[v0.0.11 performance notes](docs/releases/v0.0.11.md#performance).
+Static and Hybrid execution remain experimental. Current Windows Static checks
+cover opening areas in four games; full playthroughs, additional drivers and
+runtime-generated game code need further validation. Historical measurements
+are listed separately under [Performance](#performance).
 
 | Mode (in Export Game order) | Purpose |
 |---|---|
@@ -119,16 +116,61 @@ current bundle rather than stale detached launchers.
 
 A strict-static MK8D v4.0.0 TAS replay reaches a rendered, controllable race segment with zero JIT fallbacks. Full-race validation remains open. Tested paths are evidence of compatibility, not a guarantee for all titles or instructions.
 
-Recording and playback are armed at boot. Use separate functional fixtures when loading times differ, record screenshots at milestones, and retain a bounded idle observation after EOF. Keep exact EOF and later milestone verdicts separate. Compare performance only with identical work, interleaved arms and an idle machine.
-
-Historical speedup measurements are documented in the [v0.0.13 notes](docs/releases/v0.0.13.md). The v0.0.14 table reports bounded functional playtests and does not claim a performance gain or replace the paired campaign safeguards.
-
 See [current release notes](docs/releases/v14.0.1.md) and the [campaign and regression safeguards](docs/static-campaign.md). Build/test scripts and synthetic instruction suites are maintained in [mk8-recomp](https://github.com/dougchansan/mk8-recomp).
+
+## Performance
+
+### v14.0.1 functional observations
+
+These Windows Static opening sessions used a Ryzen 9 9950X3D and Radeon RX 9070 XT
+(AMD driver 2.0.395), with pipeline libraries off and CAD workers running in the
+background. The following averages include loading, menus and shader activity;
+zero-FPS samples and dips are retained. They describe these sessions and do not
+establish stable frame rates, a JIT comparison or a release-to-release speedup.
+
+| Game | Version | Opening area | Whole-session mean FPS | Minimum FPS |
+| --- | --- | --- | ---: | ---: |
+| Mario Kart 8 Deluxe | 4.0.0 | Mario Kart Stadium | 55.99 | 0 |
+| Super Mario Odyssey | 1.3.0 | Cap Kingdom | 47.16 | 0 |
+| Tears of the Kingdom | 1.4.3 | Beneath Hyrule Castle | 28.14 | 0 |
+| Xenoblade Chronicles 3 | 1.0.0 | Opening battle and Everblight Plain | 27.92 | 0 |
+
+The sampled MK8D race window averaged **59.99 FPS**, with a **59.94 FPS** minimum.
+The reviewed Odyssey gameplay window averaged **56.94 FPS**, with a **2.50 FPS**
+minimum. TOTK and XC3 whole-session medians were **29.98 FPS**. These windows
+have different boundaries; shader creation and background load can still cause
+stutters. The checks confirmed rendering, controls and clean shutdown, rather
+than completion of an entire race or game.
+
+### Historical measurements
+
+- [v0.0.11 performance notes](docs/releases/v0.0.11.md#performance) report MK8D
+  Windows Static improving from 23.7 to 56.1 FPS with the documented compiler
+  and hardware setup.
+- [v0.0.13 notes](docs/releases/v0.0.13.md) report uncapped TOTK 1.4.3 gains from
+  largest-L3-cache affinity on a 9950X3D (about 40% Static and 60% JIT), plus
+  earlier Static and Hybrid improvements.
+
+Those results belong to their recorded builds and settings. They are not new
+v14.0.1 benchmark results. Controlled comparisons need matching games, saves,
+mods, caches and work, with interleaved runs on an idle machine; see
+[the measurement safeguards](docs/static-campaign.md).
+
+### Further development
+
+The main validation gaps are longer races and playthroughs, more GPU/driver
+coverage, real Android hardware, and qualification of experimental platforms.
+Native export packaging beyond Windows and controlled recompiler performance
+comparisons remain areas for further work.
 
 ## Changes in recent updates
 
-Five of these are defects in suyu itself rather than recompiler work, and affect
-ordinary emulation. Each is one commit.
+v14.0.1 adds safer graphics defaults, complete advanced graphics controls and a
+working Fast GPU Time switch. v0.0.14 fixed startup/export-close crashes and Source
+exports with complex title names, corrected release version display, and added
+the Linux AppImage. See the [release history](docs/releases/) for details.
+
+Earlier correctness fixes and recompiler additions include:
 
 ### Fixes
 
@@ -215,10 +257,20 @@ See [Legal.MD](https://github.com/suyu-emu/LEGAL.MD).
 
 ## Building
 
-All three platforms below are verified: the Linux instructions were run end to
-end in a clean Ubuntu 24.04 container, the Windows ones from a fresh clone, and
-the macOS ones from a clean checkout on an M4 Pro (AppleClang 21, macOS 26 SDK).
+The release workflow builds Windows x86-64, Linux x86-64, macOS arm64 and Android
+arm64, plus their libretro cores. The examples below describe source builds;
+release packaging and its checks are defined in the [release workflow](.github/workflows/release.yml).
 Nothing here fetches a game, keys or firmware. Those are yours to supply.
+
+Start with the maintained repository:
+
+```sh
+git clone --recursive --branch mk8-recomp https://github.com/suyu-emu/suyu-main.git suyu
+cd suyu
+```
+
+Use `--branch v14.0.1` instead to build the released source. The default branch
+can contain later development changes.
 
 CMake **3.31 or newer** is required. `CMakeModules/CPMUtil.cmake` demands it and
 Ubuntu 24.04 ships 3.28, so on most distributions it has to come from Kitware
@@ -260,8 +312,6 @@ export PATH=/opt/cmake/bin:$PATH
 Then:
 
 ```sh
-git clone --recursive -b mk8-recomp https://github.com/dougchansan/suyu-v0.0.4 suyu
-cd suyu
 cmake -B build -GNinja \
   -DCMAKE_BUILD_TYPE=Release \
   -DENABLE_QT=ON -DYUZU_USE_BUNDLED_QT=OFF \
@@ -279,7 +329,8 @@ Binaries land in `build/bin`.
 
 ### Windows
 
-Visual Studio 2022 with the **Desktop development with C++** workload, Qt 6.9.3
+Visual Studio 2022 with the **Desktop development with C++** workload (release CI
+uses MSVC toolset 14.44), Qt 6.9.3
 for MSVC 2022, and the Vulkan SDK, which supplies `glslangValidator`. Qt via
 aqtinstall if you do not have it:
 
@@ -290,14 +341,13 @@ aqt install-qt windows desktop 6.9.3 win64_msvc2022_64 -m qtcharts qtmultimedia
 From a **Developer Command Prompt for VS 2022**:
 
 ```bat
-git clone --recursive -b mk8-recomp https://github.com/dougchansan/suyu-v0.0.4 suyu
-cd suyu
 cmake -B build -G Ninja ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DENABLE_QT=ON -DYUZU_USE_BUNDLED_QT=OFF ^
   -DYUZU_TESTS=OFF -DENABLE_WEB_SERVICE=OFF ^
+  -DSUYU_EXPORT_BUILD_KIT=ON ^
   -DCMAKE_PREFIX_PATH="C:/Qt/6.9.3/msvc2022_64"
-cmake --build build --target suyu suyu-cmd
+cmake --build build --target suyu suyu-cmd export-build-kit
 ```
 
 Point `CMAKE_PREFIX_PATH` at wherever Qt actually is; forward slashes save a
@@ -308,6 +358,13 @@ and suyu's CMake still searches for the old name, so if configure stops with
 
 `suyu.exe` needs the Qt runtime beside it to start — `windeployqt` on the built
 executable copies it in.
+
+Keep `build/bin/export-build-kit` beside the application to support Windows
+Static/Hybrid Build exports without a full source checkout. The kit uses MSVC
+Release objects and requires an x64 MSVC toolchain at least as recent as its
+recorded producer version. See the [export build kit guide](tools/export_build_kit/README.md)
+and [Export Game guide](docs/user/GameExport.md). Installing LLVM/Clang can improve
+generated game-code compilation; the exporter reports which compiler it used.
 
 ### macOS
 
@@ -356,9 +413,37 @@ exception handler builds and links here.
 
 ### Android
 
-Removed for now. The Gradle build is inherited from upstream and nothing here
-has verified it since the fork, so publishing instructions for it would be
-guessing. It comes back when it has been built and run.
+The arm64 APK and libretro core build successfully in release CI. Real-device
+gameplay has not yet been qualified. The current CI setup uses Java 17, Android
+SDK platform 36, NDK `28.2.13676358`, and Android SDK CMake `3.31.6`.
+
+On a Linux build host with the Android SDK installed, `ANDROID_HOME` set, and
+`sdkmanager` on `PATH`:
+
+```sh
+sdkmanager --licenses
+sdkmanager "platforms;android-36" "ndk;28.2.13676358" "cmake;3.31.6"
+sudo apt-get install -y ninja-build glslang-tools nasm
+sh .ci/android/build.sh -t standard -b Release
+```
+
+The APK is written to `artifacts/app-mainline-release.apk`. The script uses the
+configured release keystore when supplied and otherwise the repository's test
+key. For the exact signing, packaging and core-build steps, use the
+[Android release job](.github/workflows/release.yml).
+
+### libretro and experimental targets
+
+Desktop cores use `-DSUYU_BUILD_LIBRETRO_CORE=ON` and the `suyu_libretro` target.
+Android additionally uses `-DSUYU_ANDROID_LIBRETRO=ON` with the NDK toolchain.
+The current core video path is Vulkan; see the [libretro guide](src/libretro_core/README.md)
+for core options and platform-specific configuration.
+
+`-DSUYU_NO_JIT=ON` builds a host without Dynarmic and requires compiled game-code
+coverage. iOS requires this mode and has opt-in experimental probes, rather than
+a released application. FreeBSD and Linux arm64 need their own platform build
+and runtime qualification; the release workflow does not currently produce
+packages for them.
 
 ## License
 
