@@ -123,8 +123,8 @@ See [current release notes](docs/releases/v14.0.1.md) and the [campaign and regr
 ### v14.0.1 functional observations
 
 These Windows Static opening sessions used a Ryzen 9 9950X3D and Radeon RX 9070 XT
-(AMD driver 2.0.395), with pipeline libraries off and CAD workers running in the
-background. The following averages include loading, menus and shader activity;
+(AMD driver 2.0.395), with pipeline libraries off. These were functional playtests,
+not controlled benchmarks. The following averages include loading, menus and shader activity;
 zero-FPS samples and dips are retained. They describe these sessions and do not
 establish stable frame rates, a JIT comparison or a release-to-release speedup.
 
@@ -138,7 +138,7 @@ establish stable frame rates, a JIT comparison or a release-to-release speedup.
 The sampled MK8D race window averaged **59.99 FPS**, with a **59.94 FPS** minimum.
 The reviewed Odyssey gameplay window averaged **56.94 FPS**, with a **2.50 FPS**
 minimum. TOTK and XC3 whole-session medians were **29.98 FPS**. These windows
-have different boundaries; shader creation and background load can still cause
+have different boundaries; shader creation and system load can still cause
 stutters. The checks confirmed rendering, controls and clean shutdown, rather
 than completion of an entire race or game.
 
