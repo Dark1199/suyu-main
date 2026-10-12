@@ -16,20 +16,20 @@ A Nintendo Switch Emulation, Recompilation, Development and Launcher Toolkit —
   <a href="#status">Status</a> |
   <a href="#static-recompilation">Static recompilation</a> |
   <a href="#performance">Performance</a> |
-  <a href="docs/releases/v14.0.1.md">Changes in v14.0.1</a> |
+  <a href="docs/releases/v14.1.0.md">Changes in v14.1.0</a> |
   <a href="#building">Building</a> |
   <a href="#license">License</a>
 </p>
 
 ---
 
-> **Current release: [suyu v14.0.1](https://github.com/suyu-emu/suyu-main/releases/tag/v14.0.1)**
+> **Current release: [suyu v14.1.0](https://github.com/suyu-emu/suyu-main/releases/tag/v14.1.0)**
 >
 > [`suyu-emu/suyu-v0.0.4`](https://github.com/suyu-emu/suyu-v0.0.4) is a public
 > archive and no further development was planned there. This repository picks it up
-> from commit `d1d09321d7` and continues development, now at **v14.0.1**.
+> from commit `d1d09321d7` and continues development, now at **v14.1.0**.
 >
-> Tagged builds identify their exact release, such as `suyu v14.0.1`.
+> Tagged builds identify their exact release, such as `suyu v14.1.0`.
 > Development snapshots identify their commit and branch. See
 > [PROVENANCE.md](PROVENANCE.md) for the repository lineage.
 >
@@ -49,25 +49,26 @@ Based on [Eden](https://git.eden-emu.dev/eden-emu/eden), with suyu's own improve
 
 ## Status
 
-**v14.0.1 is the latest stable release**, superseding v0.0.14. Versions now use
-major.minor.patch numbering. All 11 jobs in the [tagged release workflow](https://github.com/suyu-emu/suyu-main/actions/runs/38168944029)
-passed, including platform builds, graphics-settings tests and final package checks.
+**v14.1.0 corrects NVIDIA pipeline-library rendering and macOS character geometry**,
+following v14.0.1. Versions use major.minor.patch numbering. Official packages are
+built by the [tagged release workflow](https://github.com/suyu-emu/suyu-main/actions/workflows/release.yml),
+which checks platform builds and final package contents before publishing.
 
 Graphics pipeline libraries and Fast GPU Time are **off by default**. Graphics →
 Advanced exposes the graphics hacks and Vulkan extension controls, supports global
 and per-game settings, and scrolls on smaller windows. Explicit user opt-ins are
-preserved. See the [release notes](docs/releases/v14.0.1.md).
+preserved. See the [release notes](docs/releases/v14.1.0.md).
 
 ### Released platforms
 
-| Target | Official v14.0.1 downloads | Current validation |
+| Target | Official downloads | Current validation |
 | --- | --- | --- |
-| Windows x86-64 | GUI/CLI ZIP; libretro ZIP | Release CI and four bounded Static game playtests |
-| Linux x86-64 | Tarball; Ubuntu 24.04 AppImage; libretro tarball | Release CI, package/source checks and AppImage startup checks |
-| macOS arm64 | Application ZIP; libretro ZIP | Release CI; Vulkan uses bundled MoltenVK |
-| Android arm64 | APK; libretro ZIP | Release CI; real-device gameplay remains unqualified |
+| Windows x86-64 | GUI/CLI ZIP; libretro ZIP | Radeon RX 9070 XT: bounded MK8D/TOTK Static checks with optional graphics settings off and on |
+| Linux x86-64 | Tarball; Ubuntu 24.04 AppImage; libretro tarball | RTX 3090: bounded MK8D/TOTK Static checks; package/source and AppImage startup checks |
+| macOS arm64 | Application ZIP; libretro ZIP | Apple M5: TOTK JIT and MK8D/TOTK native Static opening checks using MoltenVK |
+| Android arm64 | APK; libretro ZIP | Platform build and package checks; real-device gameplay remains unqualified |
 
-[Download v14.0.1](https://github.com/suyu-emu/suyu-main/releases/tag/v14.0.1).
+[Download v14.1.0](https://github.com/suyu-emu/suyu-main/releases/tag/v14.1.0).
 Project, dependency and AppImage corresponding-source archives accompany the
 downloads. Official packages contain no games, keys or firmware.
 
@@ -94,10 +95,10 @@ Hybrid and Static exports, including Source output, contain translated game code
 An export is a local package; official suyu releases contain no game material. See the
 [Export Game guide](docs/user/GameExport.md).
 
-Static and Hybrid execution remain experimental. Current Windows Static checks
-cover opening areas in four games; full playthroughs, additional drivers and
-runtime-generated game code need further validation. Historical measurements
-are listed separately under [Performance](#performance).
+Static and Hybrid execution remain experimental. Windows opening checks cover
+four games; native Linux and macOS checks cover MK8D and TOTK. Full playthroughs,
+additional drivers and runtime-generated game code need further validation.
+Historical measurements are listed separately under [Performance](#performance).
 
 | Mode (in Export Game order) | Purpose |
 |---|---|
@@ -107,8 +108,8 @@ are listed separately under [Performance](#performance).
 
 Builds configured with `-DSUYU_NO_JIT=ON` leave Dynarmic out entirely; releases no longer ship separate no-JIT downloads. Selecting static export mode in an ordinary host is a separate fallback policy; it does not remove the dynamic compiler from that host. No-JIT hosts require compiled coverage and cannot run unsupported AArch32 or runtime-generated code.
 
-**Re-export Static and Hybrid games for v14.0.1.** Existing exports embed their own
-CPU/HLE host; updating the GUI alone does not apply host fixes or the new graphics defaults. Generated images use ABI 6 by
+**Re-export Static and Hybrid games for v14.1.0.** Existing exports embed their own
+CPU/HLE host; updating the GUI alone does not apply these graphics fixes. Generated images use ABI 6 by
 default, with page-table memory access, guard-generation checks and floating-point
 fast paths. Compatibility output can use ABI 5. Automatic title bundles validate
 manifests, image hashes, ABI and instruction bytes. Hosted library launches use the
@@ -116,9 +117,26 @@ current bundle rather than stale detached launchers.
 
 A strict-static MK8D v4.0.0 TAS replay reaches a rendered, controllable race segment with zero JIT fallbacks. Full-race validation remains open. Tested paths are evidence of compatibility, not a guarantee for all titles or instructions.
 
-See [current release notes](docs/releases/v14.0.1.md) and the [campaign and regression safeguards](docs/static-campaign.md). Build/test scripts and synthetic instruction suites are maintained in [mk8-recomp](https://github.com/dougchansan/mk8-recomp).
+See [current release notes](docs/releases/v14.1.0.md) and the [campaign and regression safeguards](docs/static-campaign.md). Build/test scripts and synthetic instruction suites are maintained in [mk8-recomp](https://github.com/dougchansan/mk8-recomp).
 
 ## Performance
+
+### v14.1.0 graphics validation
+
+Native Static opening replays completed with normal exits, all four translated
+modules active, zero JIT transitions and zero unresolved imports for MK8D 4.0.0
+(6,001 frames) and TOTK 1.4.3 (12,001 frames) on Linux RTX 3090, Windows Radeon
+RX 9070 XT and macOS Apple M5. Linux checks verified the NVIDIA fix; Windows
+Radeon checks covered the same change as a regression test. The later Mac cases
+also verified the MoltenVK fix. The final Mac-only change rebuilt
+successfully on Windows. These checks reviewed captured rendering and do not
+establish full-game compatibility or a release-to-release performance gain.
+
+On Apple M5, later MK8D race samples were around 60 FPS. TOTK cave samples were
+around 16 FPS with Fast GPU Time off and 9–10 FPS with Medium enabled. These are
+observations from separate functional sessions, not a controlled benchmark.
+Fast GPU Time remains off by default. This MoltenVK driver does not support
+graphics pipeline libraries, so requests use the normal pipeline fallback.
 
 ### v14.0.1 functional observations
 
@@ -152,7 +170,7 @@ than completion of an entire race or game.
   earlier Static and Hybrid improvements.
 
 Those results belong to their recorded builds and settings. They are not new
-v14.0.1 benchmark results. Controlled comparisons need matching games, saves,
+v14.1.0 benchmark results. Controlled comparisons need matching games, saves,
 mods, caches and work, with interleaved runs on an idle machine; see
 [the measurement safeguards](docs/static-campaign.md).
 
@@ -165,8 +183,10 @@ comparisons remain areas for further work.
 
 ## Changes in recent updates
 
-v14.0.1 adds safer graphics defaults, complete advanced graphics controls and a
-working Fast GPU Time switch. v0.0.14 fixed startup/export-close crashes and Source
+v14.1.0 fixes corrupted NVIDIA frames when pipeline libraries are enabled and
+stretched character geometry on macOS MoltenVK. v14.0.1 adds safer graphics
+defaults, complete advanced graphics controls and a working Fast GPU Time switch.
+v0.0.14 fixed startup/export-close crashes and Source
 exports with complex title names, corrected release version display, and added
 the Linux AppImage. See the [release history](docs/releases/) for details.
 
@@ -269,7 +289,7 @@ git clone --recursive --branch mk8-recomp https://github.com/suyu-emu/suyu-main.
 cd suyu
 ```
 
-Use `--branch v14.0.1` instead to build the released source. The default branch
+Use `--branch v14.1.0` instead to build the released source. The default branch
 can contain later development changes.
 
 CMake **3.31 or newer** is required. `CMakeModules/CPMUtil.cmake` demands it and
