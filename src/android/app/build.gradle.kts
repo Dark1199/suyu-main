@@ -64,7 +64,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.suyu.suyu_emu"
+        applicationId = "com.dark1199.darkswitch"
         minSdk = 26
         targetSdk = 36
         versionName = getGitVersion()
@@ -182,15 +182,15 @@ android {
     }
 
     // appNameBase is used for the primary identifier
-    // this should be "suyu <flavorName>"
+    // this should be "Dark Switch <flavorName>"
     flavorDimensions.add("version")
     productFlavors {
         create("mainline") {
             dimension = "version"
             isDefault = true
 
-            manifestPlaceholders += mapOf("appNameBase" to "suyu")
-            resValue("string", "app_name_suffixed", "suyu")
+            manifestPlaceholders += mapOf("appNameBase" to "Dark Switch")
+            resValue("string", "app_name_suffixed", "Dark Switch")
 
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -199,8 +199,8 @@ android {
 
         create("genshinSpoof") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "suyu Optimized")
-            resValue("string", "app_name_suffixed", "suyu Optimized")
+            manifestPlaceholders += mapOf("appNameBase" to "Dark Switch Optimized")
+            resValue("string", "app_name_suffixed", "Dark Switch Optimized")
             applicationId = "com.miHoYo.Yuanshen"
 
             externalNativeBuild {
@@ -216,9 +216,9 @@ android {
 
         create("legacy") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "suyu Legacy")
-            resValue("string", "app_name_suffixed", "suyu Legacy")
-            applicationId = "org.suyu.suyu_legacy"
+            manifestPlaceholders += mapOf("appNameBase" to "Dark Switch Legacy")
+            resValue("string", "app_name_suffixed", "Dark Switch Legacy")
+            applicationId = "com.dark1199.darkswitch.legacy"
 
             externalNativeBuild {
                 cmake {
@@ -239,8 +239,8 @@ android {
 
         create("chromeOS") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "suyu ChromeOS")
-            resValue("string", "app_name_suffixed", "suyu ChromeOS")
+            manifestPlaceholders += mapOf("appNameBase" to "Dark Switch ChromeOS")
+            resValue("string", "app_name_suffixed", "Dark Switch ChromeOS")
 
             ndk {
                 abiFilters += listOf("x86_64")
@@ -262,12 +262,12 @@ android {
     }
 
     productFlavors.all {
-        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "suyu"
+        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Dark Switch"
         val suffix = if (isNightly) " Nightly" else ""
 
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
-        resValue("string", "app_name", "suyu$suffix")
+        resValue("string", "app_name", "Dark Switch$suffix")
     }
 }
 

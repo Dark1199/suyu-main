@@ -156,7 +156,7 @@
 
     <!-- Setup strings -->
     <string name="welcome">ようこそ!</string>
-    <string name="welcome_description">&lt;b>suyu&lt;/b> のセットアップ方法を学び、エミュレーションに飛び込みましょう。</string>
+    <string name="welcome_description">&lt;b>Dark Switch&lt;/b> のセットアップ方法を学び、エミュレーションに飛び込みましょう。</string>
     <string name="get_started">はじめる</string>
     <string name="keys">キー</string>
     <string name="keys_description">下のボタンから &lt;b>prod.keys&lt;/b> ファイルを選択してください。</string>
@@ -213,7 +213,7 @@
     <string name="settings_description">エミュレーターの設定を構成します</string>
     <string name="search_recently_played">最近プレイした</string>
     <string name="search_recently_added">最近追加された</string>
-    <string name="open_user_folder">suyu フォルダを開く</string>
+    <string name="open_user_folder">Dark Switch フォルダを開く</string>
     <string name="open_user_folder_description">suyu内部のファイルを管理します</string>
     <string name="no_file_manager">ファイルマネージャーが見つかりませんでした</string>
     <string name="notification_no_directory_link">suyuのディレクトリを開けません</string>
@@ -247,7 +247,7 @@
     <string name="install_game_content_success_install">%1$d のインストールに成功しました</string>
     <string name="install_game_content_success_overwrite">%1$d の上書きに成功しました</string>
     <string name="custom_driver_not_supported">カスタムドライバはサポートされていません</string>
-    <string name="manage_yuzu_data">suyu データを管理</string>
+    <string name="manage_yuzu_data">Dark Switch データを管理</string>
     <string name="manage_yuzu_data_description">ファームウェア、キー、ユーザデータなどのインポート・エクスポート</string>
     <string name="game_folders">ゲームフォルダ</string>
     <string name="deep_scan">詳細スキャン</string>

@@ -40,12 +40,12 @@ jobs:
           set -eu
           sh .ci/android/build.sh -t standard -b Release
           mkdir -p out
-          cp artifacts/app-mainline-release.apk out/suyu-turnip-dark-arm64.apk
+          cp artifacts/app-mainline-release.apk out/dark-switch-0.0.5-arm64.apk
           ls -l out
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: suyu-android-apk
-          path: out/suyu-turnip-dark-arm64.apk
+          name: dark-switch-android-apk
+          path: out/dark-switch-0.0.5-arm64.apk
           if-no-files-found: error
