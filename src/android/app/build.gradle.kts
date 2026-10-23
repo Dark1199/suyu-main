@@ -64,7 +64,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.suyu.suyu_emu"
+        applicationId = "com.dark1199.turnipdark"
         minSdk = 26
         targetSdk = 36
         versionName = getGitVersion()
@@ -189,8 +189,8 @@ android {
             dimension = "version"
             isDefault = true
 
-            manifestPlaceholders += mapOf("appNameBase" to "suyu")
-            resValue("string", "app_name_suffixed", "suyu")
+            manifestPlaceholders += mapOf("appNameBase" to "Suyu Dark")
+            resValue("string", "app_name_suffixed", "Suyu Dark")
 
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -218,7 +218,7 @@ android {
             dimension = "version"
             manifestPlaceholders += mapOf("appNameBase" to "suyu Legacy")
             resValue("string", "app_name_suffixed", "suyu Legacy")
-            applicationId = "org.suyu.suyu_legacy"
+            applicationId = "com.dark1199.turnipdark.legacy"
 
             externalNativeBuild {
                 cmake {
@@ -262,12 +262,12 @@ android {
     }
 
     productFlavors.all {
-        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "suyu"
+        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Suyu Dark"
         val suffix = if (isNightly) " Nightly" else ""
 
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
-        resValue("string", "app_name", "suyu$suffix")
+        resValue("string", "app_name", "Suyu Dark$suffix")
     }
 }
 
