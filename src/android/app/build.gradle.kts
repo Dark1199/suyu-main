@@ -66,7 +66,7 @@ android {
     defaultConfig {
         applicationId = "com.dark1199.darkswitch"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 33 // TEMPORARY: lowered from 36 for Adreno 612 crash triage
         versionName = getGitVersion()
         versionCode = autoVersion
 
