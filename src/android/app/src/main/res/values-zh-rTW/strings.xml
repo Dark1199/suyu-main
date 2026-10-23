@@ -90,7 +90,7 @@
     <string name="show_soc_model">顯示CPU型號</string>
     <string name="show_fw_version">顯示韌體版本</string>
 
-    <!-- suyu\'s Veil -->
+    <!-- VantaDrift\'s Veil -->
     <string name="buffer_reorder_disable">停用緩衝區重新排序</string>
     <string name="buffer_reorder_disable_description">勾選時，停用映射記憶體上傳的重新排序功能，允許將上傳與特定繪製關聯。某些情況下可能會降低效能。</string>
 
@@ -199,7 +199,7 @@
 
     <!-- Setup strings -->
     <string name="welcome">歡迎！</string>
-    <string name="welcome_description">瞭解如何設定 <b>suyu</b> 並開始模擬。</string>
+    <string name="welcome_description">瞭解如何設定 <b>VantaDrift</b> 並開始模擬。</string>
     <string name="get_started">開始使用</string>
     <string name="keys">金鑰</string>
     <string name="keys_description">使用下方的按鈕安裝您的 <b>prod.keys</b> 檔案。</string>
@@ -237,7 +237,7 @@
     <string name="home_settings">設定</string>
     <string name="empty_gamelist">找不到檔案，或者尚未選取遊戲目錄。</string>
     <string name="manage_game_folders">管理遊戲資料夾</string>
-    <string name="select_games_folder_description">允許 suyu 尋找您的遊戲檔案</string>
+    <string name="select_games_folder_description">允許 VantaDrift 尋找您的遊戲檔案</string>
     <string name="add_games_warning">跳過選擇遊戲資料夾？</string>
     <string name="add_games_warning_description">如果未選擇遊戲資料夾，遊戲將不會顯示在遊戲清單。</string>
     <string name="add_games_warning_help">https://yuzu-mirror.github.io/help/quickstart/#dumping-games</string>
@@ -293,11 +293,11 @@
     <string name="settings_description">進行模擬器設定</string>
     <string name="search_recently_played">最近遊玩</string>
     <string name="search_recently_added">最近新增</string>
-    <string name="open_user_folder">開啟 suyu 資料夾</string>
-    <string name="open_user_folder_description">管理 suyu 的內部檔案</string>
+    <string name="open_user_folder">開啟 VantaDrift 資料夾</string>
+    <string name="open_user_folder_description">管理 VantaDrift 的內部檔案</string>
     <string name="app_settings_description">自訂suyu的主題與介面</string>
     <string name="no_file_manager">找不到檔案管理員</string>
-    <string name="notification_no_directory_link">無法開啟 suyu 目錄</string>
+    <string name="notification_no_directory_link">無法開啟 VantaDrift 目錄</string>
     <string name="notification_no_directory_link_description">請使用檔案管理員的側邊面板手動定位到使用者資料夾。</string>
     <string name="manage_save_data">管理儲存資料</string>
     <string name="manage_save_data_description">已找到儲存資料，請選取下方的選項。</string>
@@ -315,7 +315,7 @@
     <string name="firmware_installed_failure_description">請確保韌體 nca 檔案位於 zip 壓縮檔的根目錄，然後再試一次。</string>
     <string name="firmware_uninstalled_failure">韌體解除安裝失敗</string>
     <string name="share_log">分享偵錯記錄</string>
-    <string name="share_log_description">分享 suyu 的記錄檔以便對相關問題進行偵錯</string>
+    <string name="share_log_description">分享 VantaDrift 的記錄檔以便對相關問題進行偵錯</string>
     <string name="share_log_missing">找不到日誌檔案</string>
     <string name="install_game_content">安裝遊戲內容</string>
     <string name="install_game_content_description">安裝遊戲更新或 DLC</string>
@@ -330,7 +330,7 @@
     <string name="install_game_content_help_link">https://yuzu-mirror.github.io/help/quickstart/#dumping-installed-updates</string>
     <string name="custom_driver_not_supported">您的裝置不支援自訂驅動程式</string>
     <string name="custom_driver_not_supported_description">此裝置不支援注入自訂驅動程式。\n請以後再來查看是否已新增支援！</string>
-    <string name="manage_yuzu_data">管理 suyu 資料</string>
+    <string name="manage_yuzu_data">管理 VantaDrift 資料</string>
     <string name="manage_yuzu_data_description">安裝韌體、金鑰，導入/導出使用者資料及安裝其他項目！</string>
     <string name="game_folders">遊戲資料夾</string>
     <string name="deep_scan">深度掃描</string>
@@ -386,13 +386,13 @@
     <string name="copied_to_clipboard">已複製到剪貼簿</string>
     <string name="about_app_description">一個開放原始碼的 Switch 模擬器</string>
     <string name="contributors">參與者</string>
-    <string name="licenses_description">這些專案使 suyu Android 版成為可能</string>
+    <string name="licenses_description">這些專案使 VantaDrift Android 版成為可能</string>
     <string name="build">組建版本</string>
     <string name="user_data">使用者資料</string>
     <string name="user_data_description">導入/導出所有應用程式資料。\n\n導入使用者資料時，現有的使用者資料將被取代！\n\n直接從 Citron 導入資料可能會出現問題，建議手動導入所有所需資料。</string>
     <string name="exporting_user_data">正在導出使用者資料…</string>
     <string name="importing_user_data">正在導入使用者資料…</string>
-    <string name="invalid_yuzu_backup">無效的 suyu 備份</string>
+    <string name="invalid_yuzu_backup">無效的 VantaDrift 備份</string>
     <string name="user_data_export_success">使用者資料導出成功</string>
     <string name="user_data_import_success">使用者資料導入成功</string>
     <string name="user_data_export_cancelled">導出已取消</string>

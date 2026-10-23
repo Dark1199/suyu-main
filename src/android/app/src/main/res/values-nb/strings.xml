@@ -52,7 +52,7 @@
     <string name="show_soc_model">Vis SoC-modell</string>
     <string name="show_fw_version">Vis firmwareversjon</string>
 
-    <!-- suyu\'s Veil -->
+    <!-- VantaDrift\'s Veil -->
     <string name="buffer_reorder_disable">Deaktiver bufferomorganisering</string>
     <string name="buffer_reorder_disable_description">Når merket, deaktiveres omorganisering av kartlagt minneopplasting som tillater å knytte opplastinger til spesifikke tegninger. Kan redusere ytelsen i noen tilfeller.</string>
 
@@ -156,7 +156,7 @@
 
     <!-- Setup strings -->
     <string name="welcome">Velkommen!</string>
-    <string name="welcome_description">Lær å sette opp &lt;b>suyu&lt;/b> og hopp inn i emulering.</string>
+    <string name="welcome_description">Lær å sette opp &lt;b>VantaDrift&lt;/b> og hopp inn i emulering.</string>
     <string name="get_started">Kom i gang</string>
     <string name="keys">Nøkler</string>
     <string name="keys_description">Velg din &lt;b>prod.keys&lt;/b> fil ved å bruke knappen under.</string>
@@ -178,7 +178,7 @@
     <string name="home_search">Søk</string>
     <string name="home_settings">Innstillinger</string>
     <string name="empty_gamelist">Ingen filer ble funnet eller ingen spillkatalog er valgt ennå.</string>
-    <string name="select_games_folder_description">Gjør det mulig for suyu å fylle ut spillelisten.</string>
+    <string name="select_games_folder_description">Gjør det mulig for VantaDrift å fylle ut spillelisten.</string>
     <string name="add_games_warning">Hoppe over valg av spillmappe?</string>
     <string name="add_games_warning_description">Spill vises ikke i Spill-listen hvis en mappe ikke er valgt.</string>
     <string name="home_search_games">Søk i spill|</string>
@@ -290,7 +290,7 @@
     <string name="copied_to_clipboard">Kopiert til utklippstavlen</string>
     <string name="about_app_description">En Switch-emulator med åpen kildekode</string>
     <string name="contributors">Bidragsytere</string>
-    <string name="licenses_description">Prosjekter som gjør suyu for Android mulig</string>
+    <string name="licenses_description">Prosjekter som gjør VantaDrift for Android mulig</string>
     <string name="build">Bygg</string>
     <!-- General settings strings -->
     <string name="frame_limit_enable">Begrense hastigheten</string>
