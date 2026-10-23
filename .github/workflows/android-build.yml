@@ -1,0 +1,51 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Android (arm64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK packages
+        run: |
+          set -eu
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "platforms;android-36" "ndk;28.2.13676358" "cmake;3.31.6"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build glslang-tools nasm
+
+      - name: Build APK
+        env:
+          GIT_TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -eu
+          sh .ci/android/build.sh -t standard -b Release
+          mkdir -p out
+          cp artifacts/app-mainline-release.apk out/suyu-turnip-dark-arm64.apk
+          ls -l out
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: suyu-android-apk
+          path: out/suyu-turnip-dark-arm64.apk
+          if-no-files-found: error
