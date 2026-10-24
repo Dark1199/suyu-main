@@ -35,17 +35,17 @@ jobs:
 
       - name: Build APK
         env:
-          GIT_TAG_NAME: ${{ github.ref_name }}
+          GIT_TAG_NAME: v0.0.6
         run: |
           set -eu
           sh .ci/android/build.sh -t standard -b Debug
           mkdir -p out
-          cp artifacts/app-mainline-debug.apk out/dark-switch-0.0.5-debug-arm64.apk
+          cp artifacts/app-mainline-debug.apk out/dark-switch-0.0.6-debug-arm64.apk
           ls -l out
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: dark-switch-android-apk
-          path: out/dark-switch-0.0.5-debug-arm64.apk
+          path: out/dark-switch-0.0.6-debug-arm64.apk
           if-no-files-found: error
