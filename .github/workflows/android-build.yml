@@ -2,6 +2,12 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag or commit to build (leave empty to build the branch this workflow was started from)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -15,8 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref || github.ref }}
           submodules: recursive
           fetch-depth: 0
+
+      - name: Show what is being built
+        run: |
+          echo "Building ref: ${{ inputs.ref || github.ref }}"
+          git log -1 --format='commit %h by %an: %s'
+          grep -n "applicationId =" src/android/app/build.gradle.kts | head -2
 
       - name: Set up Java
         uses: actions/setup-java@v4
