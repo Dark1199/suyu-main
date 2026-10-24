@@ -664,6 +664,24 @@ public:
     u8* virtual_base{reinterpret_cast<u8*>(MAP_FAILED)};
     u8* virtual_map_base{reinterpret_cast<u8*>(MAP_FAILED)};
 
+#if defined(__linux__) || defined(__ANDROID__)
+    /// Makes [offset, offset + length) of the backing store read as zero without touching (and
+    /// therefore committing) its pages. The range must be page aligned. Returns false on failure,
+    /// in which case the caller has to fall back to memset.
+    bool ZeroRangeLazily(size_t offset, size_t length) {
+        if (fd != -1) {
+            // Backing is a memfd/shm file mapped at file offset 0: free the pages, reads see zeros.
+            return fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+                             static_cast<off_t>(offset), static_cast<off_t>(length)) == 0;
+        }
+        if (backing_base != MAP_FAILED) {
+            // Anonymous private fallback mapping: MADV_DONTNEED drops the pages, reads see zeros.
+            return madvise(backing_base + offset, length, MADV_DONTNEED) == 0;
+        }
+        return false;
+    }
+#endif
+
 private:
     /// Release all resources in the object
     void Release() {
@@ -704,23 +722,6 @@ private:
         }
     }
 
-#if defined(__linux__) || defined(__ANDROID__)
-    /// Makes [offset, offset + length) of the backing store read as zero without touching (and
-    /// therefore committing) its pages. The range must be page aligned. Returns false on failure,
-    /// in which case the caller has to fall back to memset.
-    bool ZeroRangeLazily(size_t offset, size_t length) {
-        if (fd != -1) {
-            // Backing is a memfd/shm file mapped at file offset 0: free the pages, reads see zeros.
-            return fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
-                             static_cast<off_t>(offset), static_cast<off_t>(length)) == 0;
-        }
-        if (backing_base != MAP_FAILED) {
-            // Anonymous private fallback mapping: MADV_DONTNEED drops the pages, reads see zeros.
-            return madvise(backing_base + offset, length, MADV_DONTNEED) == 0;
-        }
-        return false;
-    }
-#endif
 
     int fd{-1}; // memfd file descriptor, -1 is the error value of memfd_create
     FreeRegionManager free_manager{};
