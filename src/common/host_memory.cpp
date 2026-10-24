@@ -56,6 +56,8 @@
 #include "common/alignment.h"
 #include "common/assert.h"
 #include "common/free_region_manager.h"
+#include <chrono>
+#include "common/dark_trace.h"
 #include "common/host_memory.h"
 #include "common/logging.h"
 
@@ -784,7 +786,38 @@ void HostMemory::Protect(size_t virtual_offset, size_t length, MemoryPermission 
 }
 
 void HostMemory::ClearBackingRegion(size_t physical_offset, size_t length, u32 fill_value) {
+    namespace DT = Common::DarkTrace;
+    const bool large = length >= DT::LargeClearThreshold;
+    DT::ProcMem before;
+    std::chrono::steady_clock::time_point t0;
+    if (large) {
+        before = DT::ReadProcMem();
+        t0 = std::chrono::steady_clock::now();
+    }
+
     std::memset(backing_base + physical_offset, fill_value, length);
+
+    const u64 cum_total = DT::g_cleared_bytes.fetch_add(length) + length;
+    const u64 cum_zero =
+        DT::g_cleared_zero_bytes.fetch_add(fill_value == 0 ? length : 0) + (fill_value == 0 ? length : 0);
+    const u64 calls = DT::g_clear_calls.fetch_add(1) + 1;
+    DT::tl_cleared_bytes += length;
+    DT::tl_cleared_calls += 1;
+
+    if (large) {
+        const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+        const DT::ProcMem after = DT::ReadProcMem();
+        LOG_INFO(HW_Memory,
+                 "[DARKTRACE] CLEAR ctx={} off=0x{:X} len={} fill=0x{:X} cum_total={} cum_zero={} "
+                 "calls={} us={} rss_kb={} d_rss_kb={} d_anon_kb={} d_file_kb={} d_shmem_kb={} "
+                 "d_swap_kb={}",
+                 DT::tl_context, physical_offset, length, fill_value, cum_total, cum_zero, calls,
+                 us, after.rss_kb, DT::Delta(after.rss_kb, before.rss_kb),
+                 DT::Delta(after.anon_kb, before.anon_kb), DT::Delta(after.file_kb, before.file_kb),
+                 DT::Delta(after.shmem_kb, before.shmem_kb), DT::Delta(after.swap_kb, before.swap_kb));
+    }
 }
 
 void HostMemory::EnableDirectMappedAddress() {

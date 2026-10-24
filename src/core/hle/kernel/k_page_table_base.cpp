@@ -4,6 +4,9 @@
 // SPDX-FileCopyrightText: Copyright 2023 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <chrono>
+#include "common/dark_trace.h"
+#include "common/logging.h"
 #include "common/scope_exit.h"
 #include "common/settings.h"
 #include "core/core.h"
@@ -2112,6 +2115,40 @@ Result KPageTableBase::SetMemoryAttribute(KProcessAddress addr, size_t size, KMe
 }
 
 Result KPageTableBase::SetHeapSize(KProcessAddress* out, size_t size) {
+    namespace DT = Common::DarkTrace;
+    const u64 dt_cur_size = static_cast<u64>(m_current_heap_end - m_heap_region_start);
+    const DT::ProcMem dt_before = DT::ReadProcMem();
+    const auto dt_t0 = std::chrono::steady_clock::now();
+    const u64 dt_bytes0 = DT::tl_cleared_bytes;
+    const u64 dt_calls0 = DT::tl_cleared_calls;
+    LOG_INFO(Kernel,
+             "[DARKTRACE] HEAP_REQ size={} cur={} delta={} max={} region={} fill=0x{:X} rss_kb={} "
+             "anon_kb={} shmem_kb={}",
+             static_cast<u64>(size), dt_cur_size,
+             static_cast<s64>(size) - static_cast<s64>(dt_cur_size),
+             static_cast<u64>(m_max_heap_size),
+             static_cast<u64>(m_heap_region_end - m_heap_region_start), m_heap_fill_value,
+             dt_before.rss_kb, dt_before.anon_kb, dt_before.shmem_kb);
+    DT::ScopedContext dt_ctx{"SetHeapSize"};
+    SCOPE_EXIT {
+        const DT::ProcMem after = DT::ReadProcMem();
+        const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                            std::chrono::steady_clock::now() - dt_t0)
+                            .count();
+        LOG_INFO(Kernel,
+                 "[DARKTRACE] HEAP_DONE size={} cleared_bytes={} clear_calls={} us={} rss_kb={} "
+                 "d_rss_kb={} d_anon_kb={} d_file_kb={} d_shmem_kb={} d_swap_kb={} "
+                 "cum_cleared={} cum_zero={}",
+                 static_cast<u64>(size), DT::tl_cleared_bytes - dt_bytes0,
+                 DT::tl_cleared_calls - dt_calls0, us, after.rss_kb,
+                 DT::Delta(after.rss_kb, dt_before.rss_kb),
+                 DT::Delta(after.anon_kb, dt_before.anon_kb),
+                 DT::Delta(after.file_kb, dt_before.file_kb),
+                 DT::Delta(after.shmem_kb, dt_before.shmem_kb),
+                 DT::Delta(after.swap_kb, dt_before.swap_kb), DT::g_cleared_bytes.load(),
+                 DT::g_cleared_zero_bytes.load());
+    };
+
     // Lock the physical memory mutex.
     KScopedLightLock map_phys_mem_lk(m_map_physical_memory_lock);
 
