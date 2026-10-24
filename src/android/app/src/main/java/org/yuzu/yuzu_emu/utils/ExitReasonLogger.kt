@@ -18,7 +18,7 @@ import java.util.Locale
  *  - exit_reasons.txt : why the previous processes ended
  *  - saved/prev_*.txt : copies of the previous run's emulator log (survives log rotation)
  *  - saved/logcat_*.txt : this app's own logcat as of the launch after an abnormal exit
- *  - mem_trace.txt / mem_trace.old.txt : once per second memory samples of the running app
+ *  - mem_trace_<start>_<pid>.txt : once per second memory/priority/thermal samples (last 3 runs kept)
  */
 object ExitReasonLogger {
     private const val MAX_SAVED = 8
@@ -88,32 +88,45 @@ object ExitReasonLogger {
             }
         }.apply { isDaemon = true; name = "dark-evidence" }.start()
 
-        startMemoryTrace(logDir)
+        startMemoryTrace(context, logDir)
     }
 
-    private fun startMemoryTrace(logDir: File) {
+    private fun startMemoryTrace(context: Context, logDir: File) {
         Thread {
             try {
-                val cur = File(logDir, "mem_trace.txt")
-                val old = File(logDir, "mem_trace.old.txt")
-                if (cur.exists()) {
-                    old.delete()
-                    cur.renameTo(old)
-                }
+                val pid = android.os.Process.myPid()
+                val cur = File(logDir, "mem_trace_" + System.currentTimeMillis() + "_" + pid + ".txt")
+                logDir.listFiles { f -> f.name.startsWith("mem_trace_") }
+                    ?.sortedBy { it.lastModified() }?.dropLast(3)?.forEach { it.delete() }
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val out = FileOutputStream(cur, true)
                 val t0 = System.currentTimeMillis()
                 while (true) {
-                    val mem = readKv("/proc/meminfo", setOf("MemAvailable", "SwapFree", "Cached"))
+                    val mem = readKv(
+                        "/proc/meminfo",
+                        setOf("MemAvailable", "MemFree", "AnonPages", "Shmem", "SwapFree")
+                    )
                     val self = readKv("/proc/self/status", setOf("VmRSS", "VmSwap", "Threads"))
-                    val psi = try {
-                        File("/proc/pressure/memory").readText().lineSequence().firstOrNull() ?: ""
-                    } catch (_: Throwable) {
-                        ""
-                    }
-                    val line = "t=" + ((System.currentTimeMillis() - t0) / 1000) + "s " +
-                        "avail=" + (mem["MemAvailable"] ?: "?") + " swapfree=" + (mem["SwapFree"] ?: "?") +
+                    val st = ActivityManager.RunningAppProcessInfo()
+                    ActivityManager.getMyMemoryState(st)
+                    val thermal = if (Build.VERSION.SDK_INT >= 29) pm.currentThermalStatus else -1
+                    val batt = context.registerReceiver(
+                        null,
+                        android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)
+                    )
+                    val tempC = (batt?.getIntExtra("temperature", -1) ?: -1) / 10.0
+                    val oomAdj = try { File("/proc/self/oom_score_adj").readText().trim() } catch (_: Throwable) { "?" }
+                    val oomScore = try { File("/proc/self/oom_score").readText().trim() } catch (_: Throwable) { "?" }
+                    val line = "t=" + ((System.currentTimeMillis() - t0) / 1000) + "s" +
+                        " avail=" + (mem["MemAvailable"] ?: "?") + " free=" + (mem["MemFree"] ?: "?") +
+                        " anon=" + (mem["AnonPages"] ?: "?") + " shmem=" + (mem["Shmem"] ?: "?") +
+                        " swapfree=" + (mem["SwapFree"] ?: "?") +
                         " rss=" + (self["VmRSS"] ?: "?") + " vmswap=" + (self["VmSwap"] ?: "?") +
-                        " thr=" + (self["Threads"] ?: "?") + " psi[" + psi + "]\n"
+                        " thr=" + (self["Threads"] ?: "?") +
+                        " importance=" + st.importance + " trim=" + st.lastTrimLevel +
+                        " oom_adj=" + oomAdj + " oom_score=" + oomScore +
+                        " thermal=" + thermal + " batt_c=" + tempC + "\n"
                     out.write(line.toByteArray())
                     if (cur.length() > MAX_TRACE_BYTES) {
                         out.channel.truncate(0)
