@@ -220,7 +220,7 @@
     <string name="open_user_folder">פתח את תיקיית Dark Switch </string>
     <string name="open_user_folder_description">נה ל את הקבצים הפנימיין של Dark Switch</string>
     <string name="no_file_manager">לא נמצא מנהל קבצים</string>
-    <string name="notification_no_directory_link">לא יכול לפתוח את ספריית suyu</string>
+    <string name="notification_no_directory_link">לא יכול לפתוח את ספריית Dark Switch</string>
     <string name="notification_no_directory_link_description">בבקשה מקם את תיקיית המשתמש בפנל הצידי של מנהל הקבצים באופן ידני.</string>
     <string name="manage_save_data">נהל  מידע שמור</string>
     <string name="manage_save_data_description">מידע שמור לא נמצא. בבקשה בחר/י אופציה מלמטה</string>
@@ -309,7 +309,7 @@
     <string name="copied_to_clipboard">הועתק ללוח</string>
     <string name="about_app_description">אמולטור Switch עם קוד פתוח</string>
     <string name="contributors">תורמים</string>
-    <string name="licenses_description">פרוייקטים שהופכים את suyu ל Android אפשרי</string>
+    <string name="licenses_description">פרוייקטים שהופכים את Dark Switch ל Android אפשרי</string>
     <string name="build">גרסה</string>
     <string name="user_data">נתוני משתמש</string>
     <string name="exporting_user_data">מייצא נתוני משתמש...</string>

@@ -298,7 +298,7 @@
     <string name="open_user_folder_description">Dark Switch\'s interne Dateien verwalten</string>
     <string name="app_settings_description">Verhalten und Aussehen der App verändern</string>
     <string name="no_file_manager">Kein Datei-Manager gefunden</string>
-    <string name="notification_no_directory_link">suyu-Verzeichnis konnte nicht geöffnet werden</string>
+    <string name="notification_no_directory_link">Dark Switch-Verzeichnis konnte nicht geöffnet werden</string>
     <string name="notification_no_directory_link_description">Bitte suche den Benutzerordner manuell über die Seitenleiste des Datei-Managers.</string>
     <string name="manage_save_data">Speicherdaten verwalten</string>
     <string name="manage_save_data_description">Speicherdaten gefunden. Bitte wähle unten eine Option aus.</string>
@@ -320,7 +320,7 @@ Wirklich fortfahren?</string>
     <string name="share_log_description">Fehlerbehebungs-Protokolle an Dark Switch zur Fehlerbehebung absenden</string>
     <string name="share_log_missing">Keine Protokolldatei gefunden</string>
     <string name="share_gpu_log">GPU-Protokolle teilen</string>
-    <string name="share_gpu_log_description">Teile suyus GPU-Protokolldatei, um Grafikprobleme zu beheben</string>
+    <string name="share_gpu_log_description">Teile Dark Switch GPU-Protokolldatei, um Grafikprobleme zu beheben</string>
     <string name="share_gpu_log_missing">Keine GPU-Protokolldatei gefunden</string>
     <string name="install_game_content">Spiel installieren</string>
     <string name="install_game_content_description">Spielaktualisierungen oder DLCs installieren</string>
@@ -394,7 +394,7 @@ Wirklich fortfahren?</string>
     <string name="copied_to_clipboard">In die Zwischenablage kopiert</string>
     <string name="about_app_description">Ein quelloffener Switch-Emulator</string>
     <string name="contributors">Beitragende</string>
-    <string name="licenses_description">Projekte, die suyu für Android möglich machen </string>
+    <string name="licenses_description">Projekte, die Dark Switch für Android möglich machen </string>
     <string name="build">Build</string>
     <string name="user_data">Nutzerdaten</string>
     <string name="user_data_description">Alle App-Daten importieren/exportieren\n\nBeim Importieren von Nutzerdaten werden alle existierenden Nutzerdaten gelöscht!\n\nDaten aus Citron zu importieren kann Probleme verursachen. Es wird empfohlen, alle benötigten Daten manuell zu importieren.</string>

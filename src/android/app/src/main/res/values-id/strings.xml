@@ -240,7 +240,7 @@
     <string name="open_user_folder">Buka folder Dark Switch</string>
     <string name="open_user_folder_description">Kelola file internal Dark Switch\'s</string>
     <string name="no_file_manager">Tidak menemukan file manager</string>
-    <string name="notification_no_directory_link">Tidak bisa membuka direktori suyu</string>
+    <string name="notification_no_directory_link">Tidak bisa membuka direktori Dark Switch</string>
     <string name="notification_no_directory_link_description">Silakan cari folder pengguna dengan panel samping manajer file secara manual.</string>
     <string name="manage_save_data">Kelola save data</string>
     <string name="manage_save_data_description">Data simpanan ditemukan. Silakan pilih opsi di bawah.</string>
@@ -329,7 +329,7 @@
     <string name="copied_to_clipboard">Salin ke papan klip</string>
     <string name="about_app_description">Emulator Switch Open-Source</string>
     <string name="contributors">Kontributor</string>
-    <string name="licenses_description">Proyek yang memungkinkan suyu untuk Android</string>
+    <string name="licenses_description">Proyek yang memungkinkan Dark Switch untuk Android</string>
     <string name="build">Versi</string>
     <string name="user_data">Data pengguna</string>
     <string name="user_data_description">Impor/Ekspor semua data aplikasi\n\nketika mengimpor data user, semua data user yang tersedia akan dihapus!\n\nMengimpor data dari Citron dapat menyebabkan masalah. Direkomendasikan untuk melakukan impor manual semua data yang dibutuhkan.</string>

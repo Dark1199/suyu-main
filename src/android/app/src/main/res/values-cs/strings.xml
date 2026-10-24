@@ -385,7 +385,7 @@
     <string name="copied_to_clipboard">Zkopírováno do schránky</string>
     <string name="about_app_description">Open-source emulátor konzole Switch</string>
     <string name="contributors">Přispěvatelé</string>
-    <string name="licenses_description">suyu pro Android bylo možné zrealizovat díky těmto projektům</string>
+    <string name="licenses_description">Dark Switch pro Android bylo možné zrealizovat díky těmto projektům</string>
     <string name="build">Číslo sestavení</string>
     <string name="user_data">Uživatelská data</string>
     <string name="user_data_description">Import/export všech dat aplikace.\n\nPři importu uživatelských dat budou všechna stávající uživatelská data smazána!\n\nImport dat z emulátoru Citron může způsobit potíže. Doporučujeme potřebná data zkopírovat ručně.</string>

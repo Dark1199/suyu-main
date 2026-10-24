@@ -299,7 +299,7 @@
     <string name="open_user_folder_description">Управление внутренними файлами Dark Switch</string>
     <string name="app_settings_description">Изменяет поведение и внешний вид приложения</string>
     <string name="no_file_manager">Не найден файловый менеджер</string>
-    <string name="notification_no_directory_link">Не удалось открыть папку suyu</string>
+    <string name="notification_no_directory_link">Не удалось открыть папку Dark Switch</string>
     <string name="notification_no_directory_link_description">Пожалуйста, найдите папку пользователя с помощью боковой панели файлового менеджера вручную.</string>
     <string name="manage_save_data">Управление данными сохранений</string>
     <string name="manage_save_data_description">Найдены данные сохранений. Пожалуйста, выберите вариант ниже.</string>
@@ -399,8 +399,8 @@
     <string name="copied_to_clipboard">Скопировано в буфер обмена</string>
     <string name="about_app_description">Эмулятор Switch с открытым исходным кодом</string>
     <string name="contributors">Контрибьюторы</string>
-    <string name="contributors_description">Люди, благодаря которым появился suyu для Android</string>
-    <string name="licenses_description">Проекты, которые сделали suyu для Android возможным</string>
+    <string name="contributors_description">Люди, благодаря которым появился Dark Switch для Android</string>
+    <string name="licenses_description">Проекты, которые сделали Dark Switch для Android возможным</string>
     <string name="build">Сборка</string>
     <string name="user_data">Данные пользователя</string>
     <string name="user_data_description">Импорт/экспорт всех данных\n\nПри импорте все текущие данные будут удалены!\n\nИмпорт из Citron может вызвать ошибки. Рекомендуется ручной перенос.</string>

@@ -385,7 +385,7 @@
     <string name="copied_to_clipboard">Skopiowano do schowka</string>
     <string name="about_app_description">Otwarto-źródłowy emulator konsoli Switch</string>
     <string name="contributors">Współtwórcy</string>
-    <string name="licenses_description">Projekty dzięki którym suyu mógł zostać stworzony</string>
+    <string name="licenses_description">Projekty dzięki którym Dark Switch mógł zostać stworzony</string>
     <string name="build">Wersja</string>
     <string name="user_data">Dane użytkownika</string>
     <string name="user_data_description">Importuj/eksportuj wszystkie dane aplikacji.\n\nPodczas importu danych użytkownika wszystkie istniejące dane użytkownika zostaną usunięte!\n\nImport danych z Citron może powodować problemy. Zaleca się ręczny import wszystkich potrzebnych danych.</string>

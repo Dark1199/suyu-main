@@ -207,9 +207,9 @@
     <string name="search_recently_played">Nylig spilt</string>
     <string name="search_recently_added">Nylig lagt til</string>
     <string name="open_user_folder">Åpne Dark Switch-mappen</string>
-    <string name="open_user_folder_description">Administrere suyus interne filer</string>
+    <string name="open_user_folder_description">Administrere Dark Switch interne filer</string>
     <string name="no_file_manager">Ingen filbehandler funnet</string>
-    <string name="notification_no_directory_link">Kunne ikke åpne suyu-katalogen</string>
+    <string name="notification_no_directory_link">Kunne ikke åpne Dark Switch-katalogen</string>
     <string name="notification_no_directory_link_description">Finn brukermappen manuelt med filbehandlingens sidepanel.</string>
     <string name="manage_save_data">Administrere lagringsdata</string>
     <string name="manage_save_data_description">Lagringsdata funnet. Velg et alternativ nsuyufor.</string>
@@ -221,7 +221,7 @@
     <string name="firmware_installing">Installering av fastvare</string>
     <string name="firmware_installed_failure">Installasjon av fastvare mislyktes</string>
     <string name="share_log">Del feilsøkingslogger</string>
-    <string name="share_log_description">Del suyus loggfil for å feilsøke problemer</string>
+    <string name="share_log_description">Del Dark Switch loggfil for å feilsøke problemer</string>
     <string name="share_log_missing">Ingen loggfil funnet</string>
     <string name="install_game_content">Installer spillinnhold</string>
     <string name="install_game_content_description">Installer spilloppdateringer eller DLC</string>
@@ -290,7 +290,7 @@
     <string name="copied_to_clipboard">Kopiert til utklippstavlen</string>
     <string name="about_app_description">En Switch-emulator med åpen kildekode</string>
     <string name="contributors">Bidragsytere</string>
-    <string name="licenses_description">Prosjekter som gjør suyu for Android mulig</string>
+    <string name="licenses_description">Prosjekter som gjør Dark Switch for Android mulig</string>
     <string name="build">Bygg</string>
     <!-- General settings strings -->
     <string name="frame_limit_enable">Begrense hastigheten</string>

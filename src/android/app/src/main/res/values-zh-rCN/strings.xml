@@ -5,8 +5,8 @@
     <string name="notice_notification_channel_name">错误与注意事项</string>
     <string name="notice_notification_channel_description">当发生错误时显示通知。</string>
     <string name="notification_permission_not_granted">未授予通知权限！</string>
-    <string name="app_notification_channel_description">suyu模拟器通知</string>
-    <string name="app_notification_running">suyu正在运行</string>
+    <string name="app_notification_channel_description">Dark Switch模拟器通知</string>
+    <string name="app_notification_running">Dark Switch正在运行</string>
     <string name="seconds">秒</string>
 
     <!-- Spinbox strings -->
@@ -299,7 +299,7 @@
     <string name="open_user_folder_description">管理 Dark Switch 内部文件</string>
     <string name="app_settings_description">更改 app 的外观</string>
     <string name="no_file_manager">找不到可用的文件管理器</string>
-    <string name="notification_no_directory_link">无法打开 suyu 文件夹</string>
+    <string name="notification_no_directory_link">无法打开 Dark Switch 文件夹</string>
     <string name="notification_no_directory_link_description">请使用文件管理器侧边栏中的内部存储手动定位用户文件夹。</string>
     <string name="manage_save_data">管理存档数据</string>
     <string name="manage_save_data_description">已找到存档数据，请选择下方的选项。</string>
@@ -393,8 +393,8 @@
     <string name="copied_to_clipboard">已复制到剪贴板</string>
     <string name="about_app_description">一款开源的 Switch 模拟器</string>
     <string name="contributors">贡献者</string>
-    <string name="contributors_description">suyu Android 版的诞生离不开这些人的支持</string>
-    <string name="licenses_description">Android 版 suyu 离不开这些项目的支持</string>
+    <string name="contributors_description">Dark Switch Android 版的诞生离不开这些人的支持</string>
+    <string name="licenses_description">Android 版 Dark Switch 离不开这些项目的支持</string>
     <string name="build">构建版本</string>
     <string name="user_data">用户数据</string>
     <string name="user_data_description">导入导出所有应用数据。\n\n导入数据时，现有的数据均会被删除！\n\n从Citron导入数据可能会导致问题，建议手动导入所有需要的数据。</string>

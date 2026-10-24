@@ -213,7 +213,7 @@
     <string name="open_user_folder">Dark Switch mappa megnyitása</string>
     <string name="open_user_folder_description">Dark Switch belső fájljainak kezelése</string>
     <string name="no_file_manager">Nem található fájlkezelő</string>
-    <string name="notification_no_directory_link">Nem sikerült megnyitni a suyu könyvtárat</string>
+    <string name="notification_no_directory_link">Nem sikerült megnyitni a Dark Switch könyvtárat</string>
     <string name="notification_no_directory_link_description">Kérjük, manuálisan keresd meg a felhasználói mappát a fájlkezelő oldalsó paneljével.</string>
     <string name="manage_save_data">Mentésadatok kezelése</string>
     <string name="manage_save_data_description">Mentés található. Kérjük, válassz egyet az alábbi opciók közül.</string>
@@ -299,7 +299,7 @@
     <string name="copied_to_clipboard">Másolva a vágólapra</string>
     <string name="about_app_description">Egy nyílt forráskódú Switch emulátor</string>
     <string name="contributors">Hozzájárulók</string>
-    <string name="licenses_description">Projektek, amik nélkül a suyu nem jöhetett volna létre Androidra</string>
+    <string name="licenses_description">Projektek, amik nélkül a Dark Switch nem jöhetett volna létre Androidra</string>
     <string name="user_data">Felhasználói adatok</string>
     <string name="exporting_user_data">Felhasználói adatok exportálása...</string>
     <string name="importing_user_data">Felhasználói adatok importálása...</string>

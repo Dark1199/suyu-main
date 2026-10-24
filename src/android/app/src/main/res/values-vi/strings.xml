@@ -209,7 +209,7 @@
     <string name="open_user_folder">Mở thư mục Dark Switch</string>
     <string name="open_user_folder_description">Quản lý file nội bộ của Dark Switch</string>
     <string name="no_file_manager">Không tìm thấy trình quản lý tệp</string>
-    <string name="notification_no_directory_link">Không thể mở thư mục suyu</string>
+    <string name="notification_no_directory_link">Không thể mở thư mục Dark Switch</string>
     <string name="notification_no_directory_link_description">Vui lòng xác định thư mục người dùng với bảng điều khiển bên của trình quản lý tệp thủ công.</string>
     <string name="manage_save_data">Quản lý dữ liệu save</string>
     <string name="manage_save_data_description">Đã tìm thấy dữ liệu save. Vui lòng chọn một tuỳ chọn bên dưới.</string>
@@ -288,7 +288,7 @@
     <string name="copied_to_clipboard">Đã sao chép vào bộ nhớ tạm</string>
     <string name="about_app_description">Một giả lập Switch mã nguồn mở</string>
     <string name="contributors">Người đóng góp</string>
-    <string name="licenses_description">Các dự án làm cho suyu trên Android trở thành điều có thể</string>
+    <string name="licenses_description">Các dự án làm cho Dark Switch trên Android trở thành điều có thể</string>
     <string name="build">Dựng</string>
     <!-- General settings strings -->
     <string name="frame_limit_enable">Giới hạn tốc độ</string>

@@ -299,7 +299,7 @@
     <string name="open_user_folder_description">Administrar los archivos internos de Dark Switch</string>
     <string name="app_settings_description">Modificar el comportamiento y la apariencia de la aplicación.</string>
     <string name="no_file_manager">Explorador de archivos no encontrado</string>
-    <string name="notification_no_directory_link">No se pudo abrir la carpeta suyu</string>
+    <string name="notification_no_directory_link">No se pudo abrir la carpeta Dark Switch</string>
     <string name="notification_no_directory_link_description">Por favor, busque la carpeta user con el panel lateral del explorador de archivos de forma manual.</string>
     <string name="manage_save_data">Administrar datos de guardado</string>
     <string name="manage_save_data_description">Guardar los datos encontrados. Por favor, seleccione una opción de abajo.</string>
@@ -397,8 +397,8 @@
     <string name="copied_to_clipboard">Copiado al portapapeles</string>
     <string name="about_app_description">Un emulador de Switch de código abierto</string>
     <string name="contributors">Colaboradores</string>
-    <string name="contributors_description">Gente que hizo posible suyu para Android</string>
-    <string name="licenses_description">Proyectos que hacen que suyu para Android sea posible</string>
+    <string name="contributors_description">Gente que hizo posible Dark Switch para Android</string>
+    <string name="licenses_description">Proyectos que hacen que Dark Switch para Android sea posible</string>
     <string name="build">Compilación</string>
     <string name="user_data">Datos de usuario</string>
     <string name="user_data_description">Importar/exportar todos los datos de la app.\n\nCuando se importa datos de usuario, todos los datos de usuario existentes serán eliminados!\n\nImportando datos de Citron puede causar problemas. Es recomendado manualmente importar todos los datos necesarios.</string>

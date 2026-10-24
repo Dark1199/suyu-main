@@ -183,7 +183,7 @@
     <string name="home_settings">設定</string>
     <string name="empty_gamelist">ファイルが存在しないかゲームフォルダが選択されていません。</string>
     <string name="manage_game_folders">ゲームフォルダの管理</string>
-    <string name="select_games_folder_description">ゲームをsuyuのゲームリストに追加します</string>
+    <string name="select_games_folder_description">ゲームをDark Switchのゲームリストに追加します</string>
     <string name="add_games_warning">ゲームフォルダの選択をスキップしますか?</string>
     <string name="add_games_warning_description">フォルダを選択しないと、ゲームがリストに表示されません。</string>
     <string name="home_search_games">ゲームを検索</string>
@@ -214,9 +214,9 @@
     <string name="search_recently_played">最近プレイした</string>
     <string name="search_recently_added">最近追加された</string>
     <string name="open_user_folder">Dark Switch フォルダを開く</string>
-    <string name="open_user_folder_description">suyu内部のファイルを管理します</string>
+    <string name="open_user_folder_description">Dark Switch内部のファイルを管理します</string>
     <string name="no_file_manager">ファイルマネージャーが見つかりませんでした</string>
-    <string name="notification_no_directory_link">suyuのディレクトリを開けません</string>
+    <string name="notification_no_directory_link">Dark Switchのディレクトリを開けません</string>
     <string name="notification_no_directory_link_description">ファイルマネージャのサイドパネルでユーザーフォルダを手動で探してください。</string>
     <string name="manage_save_data">セーブデータ</string>
     <string name="manage_save_data_description">セーブデータが見つかりました。操作を選択してください。</string>
@@ -234,7 +234,7 @@
     <string name="firmware_installed_failure_description">ファームウェアのncaだけはzipの中にある事を確認して機能を再び行ってください</string>
     <string name="firmware_uninstalled_failure">ファームウェアのアンインストールで失敗しました</string>
     <string name="share_log">デバッグログを共有</string>
-    <string name="share_log_description">suyuのログファイルを共有して問題をデバッグします</string>
+    <string name="share_log_description">Dark Switchのログファイルを共有して問題をデバッグします</string>
     <string name="share_log_missing">ログが見つかりません</string>
     <string name="install_game_content">追加コンテンツ</string>
     <string name="install_game_content_description">更新データやDLCをインストールします</string>
@@ -301,12 +301,12 @@
     <string name="copied_to_clipboard">クリップボードにコピーしました</string>
     <string name="about_app_description">オープンソースのSwitchエミュレータ</string>
     <string name="contributors">貢献者</string>
-    <string name="licenses_description">suyu for Androidの作成を可能にしたプロジェクト</string>
+    <string name="licenses_description">Dark Switch for Androidの作成を可能にしたプロジェクト</string>
     <string name="build">ビルド</string>
     <string name="user_data">ユーザデータ</string>
     <string name="exporting_user_data">ユーザデータをエクスポート中...</string>
     <string name="importing_user_data">ユーザデータをインポート中...</string>
-    <string name="invalid_yuzu_backup">suyuのバックアップは無効</string>
+    <string name="invalid_yuzu_backup">Dark Switchのバックアップは無効</string>
     <string name="user_data_export_success">ユーザデータのエクスポートに成功しました</string>
     <string name="user_data_import_success">ユーザデータのインポートに成功しました</string>
     <string name="user_data_export_cancelled">エクスポートをキャンセルしました</string>
