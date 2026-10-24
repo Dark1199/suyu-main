@@ -848,7 +848,7 @@ struct Values {
     // suyu-exclusive debug/misc settings (not present in Eden upstream)
     Setting<bool> cpu_debug_mode{linkage, false, "cpu_debug_mode", Category::Debugging};
     Setting<bool> dump_shaders{linkage, false, "dump_shaders", Category::DebuggingGraphics};
-    Setting<bool> log_async{linkage, true, "log_async", Category::Miscellaneous};
+    Setting<bool> log_async{linkage, false, "log_async", Category::Miscellaneous};
     Setting<bool> enable_gamemode{linkage, false, "enable_gamemode", Category::Miscellaneous};
     Setting<bool> optimize_spirv_output{linkage, false, "optimize_spirv_output", Category::Renderer};
 
@@ -875,7 +875,7 @@ struct Values {
 
     // Miscellaneous
     Setting<std::string> log_filter{linkage, "*:Info", "log_filter", Category::Miscellaneous};
-    Setting<bool> log_flush_line{linkage, false, "flush_line", Category::Miscellaneous, Specialization::Default, true, true};
+    Setting<bool> log_flush_line{linkage, true, "flush_line", Category::Miscellaneous, Specialization::Default, true, true};
     Setting<bool> censor_username{linkage, true, "censor_username", Category::Miscellaneous};
     Setting<bool> first_launch{linkage, true, "first_launch", Category::Miscellaneous};
 

@@ -62,6 +62,7 @@ class YuzuApplication : Application() {
         application = this
         documentsTree = DocumentsTree()
         DirectoryInitialization.start()
+        org.yuzu.yuzu_emu.utils.ExitReasonLogger.record(this, getPublicFilesDir())
 
         // Initialize Freedreno config BEFORE loading native library
         // This ensures GPU driver environment variables are set before adrenotools initializes
