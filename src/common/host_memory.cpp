@@ -21,6 +21,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#if defined(__linux__) || defined(__ANDROID__)
+#include <linux/falloc.h>
+#endif
 #include "common/scope_exit.h"
 
 #if defined(__linux__)
@@ -701,6 +704,24 @@ private:
         }
     }
 
+#if defined(__linux__) || defined(__ANDROID__)
+    /// Makes [offset, offset + length) of the backing store read as zero without touching (and
+    /// therefore committing) its pages. The range must be page aligned. Returns false on failure,
+    /// in which case the caller has to fall back to memset.
+    bool ZeroRangeLazily(size_t offset, size_t length) {
+        if (fd != -1) {
+            // Backing is a memfd/shm file mapped at file offset 0: free the pages, reads see zeros.
+            return fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+                             static_cast<off_t>(offset), static_cast<off_t>(length)) == 0;
+        }
+        if (backing_base != MAP_FAILED) {
+            // Anonymous private fallback mapping: MADV_DONTNEED drops the pages, reads see zeros.
+            return madvise(backing_base + offset, length, MADV_DONTNEED) == 0;
+        }
+        return false;
+    }
+#endif
+
     int fd{-1}; // memfd file descriptor, -1 is the error value of memfd_create
     FreeRegionManager free_manager{};
 };
@@ -785,6 +806,10 @@ void HostMemory::Protect(size_t virtual_offset, size_t length, MemoryPermission 
 #endif
 }
 
+namespace {
+constexpr size_t LazyZeroThreshold = 2ULL * 1024 * 1024;
+} // namespace
+
 void HostMemory::ClearBackingRegion(size_t physical_offset, size_t length, u32 fill_value) {
     namespace DT = Common::DarkTrace;
     const bool large = length >= DT::LargeClearThreshold;
@@ -795,7 +820,35 @@ void HostMemory::ClearBackingRegion(size_t physical_offset, size_t length, u32 f
         t0 = std::chrono::steady_clock::now();
     }
 
+    // Zero fills of large ranges are done lazily: the backing store is a memfd, whose pages are only
+    // committed when written. Writing zeros with memset would commit every page up front (a 3 GiB
+    // heap request then exhausts RAM on small devices). Punching a hole frees the pages and
+    // guarantees they read back as zero, so only pages the guest really touches are committed.
+    const char* mode = "memset";
+#if (defined(__linux__) || defined(__ANDROID__)) && !defined(_WIN32)
+    bool lazily_zeroed = false;
+    if (fill_value == 0 && length >= LazyZeroThreshold && impl) {
+        const size_t page = static_cast<size_t>(sysconf(_SC_PAGESIZE));
+        const size_t begin = Common::AlignUp(physical_offset, page);
+        const size_t end = Common::AlignDown(physical_offset + length, page);
+        if (end > begin && end - begin >= LazyZeroThreshold &&
+            impl->ZeroRangeLazily(begin, end - begin)) {
+            if (begin > physical_offset) {
+                std::memset(backing_base + physical_offset, 0, begin - physical_offset);
+            }
+            if (physical_offset + length > end) {
+                std::memset(backing_base + end, 0, physical_offset + length - end);
+            }
+            lazily_zeroed = true;
+            mode = "punch";
+        }
+    }
+    if (!lazily_zeroed) {
+        std::memset(backing_base + physical_offset, fill_value, length);
+    }
+#else
     std::memset(backing_base + physical_offset, fill_value, length);
+#endif
 
     const u64 cum_total = DT::g_cleared_bytes.fetch_add(length) + length;
     const u64 cum_zero =
@@ -810,10 +863,10 @@ void HostMemory::ClearBackingRegion(size_t physical_offset, size_t length, u32 f
                             .count();
         const DT::ProcMem after = DT::ReadProcMem();
         LOG_INFO(HW_Memory,
-                 "[DARKTRACE] CLEAR ctx={} off=0x{:X} len={} fill=0x{:X} cum_total={} cum_zero={} "
+                 "[DARKTRACE] CLEAR mode={} ctx={} off=0x{:X} len={} fill=0x{:X} cum_total={} cum_zero={} "
                  "calls={} us={} rss_kb={} d_rss_kb={} d_anon_kb={} d_file_kb={} d_shmem_kb={} "
                  "d_swap_kb={}",
-                 DT::tl_context, physical_offset, length, fill_value, cum_total, cum_zero, calls,
+                 mode, DT::tl_context, physical_offset, length, fill_value, cum_total, cum_zero, calls,
                  us, after.rss_kb, DT::Delta(after.rss_kb, before.rss_kb),
                  DT::Delta(after.anon_kb, before.anon_kb), DT::Delta(after.file_kb, before.file_kb),
                  DT::Delta(after.shmem_kb, before.shmem_kb), DT::Delta(after.swap_kb, before.swap_kb));
