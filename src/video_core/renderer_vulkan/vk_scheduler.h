@@ -13,12 +13,14 @@
 #include <thread>
 #include <utility>
 #include <queue>
+#include <source_location>
 
 #include "common/alignment.h"
 #include "common/common_types.h"
 #include "common/polyfill_thread.h"
 #include "common/settings.h"
 #include "video_core/renderer_vulkan/vk_master_semaphore.h"
+#include "video_core/renderer_vulkan/vk_stall_probe.h"
 #include "video_core/vulkan_common/vulkan_wrapper.h"
 
 namespace VideoCommon {
@@ -47,7 +49,8 @@ public:
     u64 Flush(VkSemaphore signal_semaphore = {}, VkSemaphore wait_semaphore = {});
 
     /// Sends the current execution context to the GPU and waits for it to complete.
-    void Finish(VkSemaphore signal_semaphore = {}, VkSemaphore wait_semaphore = {});
+    void Finish(VkSemaphore signal_semaphore = {}, VkSemaphore wait_semaphore = {},
+                std::source_location caller = std::source_location::current());
 
     /// Waits for the worker thread to finish executing everything. After this function returns it's
     /// safe to touch worker resources.
@@ -118,11 +121,13 @@ public:
     }
 
     /// Waits for the given GPU tick, optionally pacing frames.
-    void Wait(u64 tick, double target_fps = 0.0) {
+    void Wait(u64 tick, double target_fps = 0.0,
+              std::source_location caller = std::source_location::current()) {
         if (tick > 0) {
             if (tick >= master_semaphore->CurrentTick()) {
                 Flush();
             }
+            StallProbe::SiteScope site{caller};
             master_semaphore->Wait(tick);
         }
         if (Settings::values.use_speed_limit.GetValue() && target_fps > 0.0) {

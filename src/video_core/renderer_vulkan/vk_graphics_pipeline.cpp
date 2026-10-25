@@ -360,7 +360,9 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
     views.reserve(num_image_elements);
     samplers.reserve(num_textures);
 
+    StallProbe::Lap cfg_lap;
     texture_cache.SynchronizeDescriptors(false);
+    cfg_lap.Mark(StallProbe::cfg_sync_ns);
 
     buffer_cache.SetUniformBuffersState(enabled_uniform_buffer_masks, &uniform_buffer_sizes);
 
@@ -452,9 +454,11 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
     if constexpr (Spec::enabled_stages[4]) {
         config_stage(4);
     }
+    cfg_lap.Mark(StallProbe::cfg_stage_ns);
     ASSERT(views.size() == num_image_elements);
     ASSERT(samplers.size() == num_textures);
     texture_cache.FillImageViews(std::span(views.data(), views.size()), false, Spec::has_images);
+    cfg_lap.Mark(StallProbe::cfg_fill_ns);
 
     VideoCommon::ImageViewInOut* texture_buffer_it{views.data()};
     const auto bind_stage_info{[&](size_t stage) LAMBDA_FORCEINLINE {
@@ -518,8 +522,10 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
         scheduler.RequestOutsideRenderPassOperationContext();
     }
 
+    cfg_lap.Mark(StallProbe::cfg_bind_ns);
     buffer_cache.UpdateGraphicsBuffers(is_indexed);
     buffer_cache.BindHostGeometryBuffers(is_indexed);
+    cfg_lap.Mark(StallProbe::cfg_buffers_ns);
 
     guest_descriptor_queue.Acquire(scheduler, num_descriptor_entries);
 
@@ -553,6 +559,7 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
     if constexpr (Spec::enabled_stages[4]) {
         prepare_stage(4);
     }
+    cfg_lap.Mark(StallProbe::cfg_push_ns);
     if (buffer_cache.any_buffer_uploaded) {
         buffer_cache.runtime.PostCopyBarrier();
         buffer_cache.any_buffer_uploaded = false;
@@ -560,6 +567,7 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
     texture_cache.UpdateRenderTargets(false);
     texture_cache.CheckFeedbackLoop(std::span<const VideoCommon::ImageViewInOut>{views.data(),
                                                                                  views.size()});
+    cfg_lap.Mark(StallProbe::cfg_rt_ns);
     return ConfigureDraw(rescaling, render_area);
 }
 
