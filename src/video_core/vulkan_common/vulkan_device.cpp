@@ -1469,6 +1469,7 @@ void Device::SetupFamilies(VkSurfaceKHR surface) {
     }
     if (graphics) {
         graphics_family = *graphics;
+        timestamp_valid_bits = queue_family_properties[*graphics].timestampValidBits;
     }
     if (present) {
         present_family = *present;

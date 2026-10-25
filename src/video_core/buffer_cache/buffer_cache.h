@@ -13,6 +13,7 @@
 #include "common/range_sets.inc"
 #include "video_core/buffer_cache/buffer_cache_base.h"
 #include "video_core/guest_memory.h"
+#include "video_core/renderer_vulkan/vk_stall_probe.h"
 #include "video_core/host1x/gpu_device_memory_manager.h"
 #include "video_core/texture_cache/util.h"
 
@@ -337,7 +338,12 @@ void BufferCache<P>::DisableGraphicsUniformBuffer(size_t stage, u32 index) {
 
 template <class P>
 void BufferCache<P>::UpdateGraphicsBuffers(bool is_indexed) {
+    bool first = true;
     do {
+        if (!first) {
+            ::Vulkan::StallProbe::bc_retry.fetch_add(1, std::memory_order_relaxed);
+        }
+        first = false;
         channel_state->has_deleted_buffers = false;
         DoUpdateGraphicsBuffers(is_indexed);
     } while (channel_state->has_deleted_buffers);
@@ -353,6 +359,7 @@ void BufferCache<P>::UpdateComputeBuffers() {
 
 template <class P>
 void BufferCache<P>::BindHostGeometryBuffers(bool is_indexed) {
+    ::Vulkan::StallProbe::Lap lap;
     if (is_indexed) {
         BindHostIndexBuffer();
     } else if constexpr (!HAS_FULL_INDEX_AND_PRIMITIVE_SUPPORT) {
@@ -363,18 +370,26 @@ void BufferCache<P>::BindHostGeometryBuffers(bool is_indexed) {
                                         draw_state.vertex_buffer.count);
         }
     }
+    lap.Mark(::Vulkan::StallProbe::bc_bind_idx_ns);
     BindHostVertexBuffers();
+    lap.Mark(::Vulkan::StallProbe::bc_bind_vtx_ns);
     BindHostTransformFeedbackBuffers();
+    lap.Mark(::Vulkan::StallProbe::bc_bind_xfb_ns);
     if (current_draw_indirect) {
         BindHostDrawIndirectBuffers();
     }
+    lap.Mark(::Vulkan::StallProbe::bc_bind_ind_ns);
 }
 
 template <class P>
 void BufferCache<P>::BindHostStageBuffers(size_t stage) {
+    ::Vulkan::StallProbe::Lap lap;
     BindHostGraphicsUniformBuffers(stage);
+    lap.Mark(::Vulkan::StallProbe::bc_bind_ubo_ns);
     BindHostGraphicsStorageBuffers(stage);
+    lap.Mark(::Vulkan::StallProbe::bc_bind_sbo_ns);
     BindHostGraphicsTextureBuffers(stage);
+    lap.Mark(::Vulkan::StallProbe::bc_bind_tex_ns);
 }
 
 template <class P>
@@ -1193,21 +1208,54 @@ void BufferCache<P>::BindHostComputeTextureBuffers() {
 
 template <class P>
 void BufferCache<P>::DoUpdateGraphicsBuffers(bool is_indexed) {
+    namespace Probe = ::Vulkan::StallProbe;
+    const bool probe = Probe::Enabled();
+    const u64 total_start = probe ? Probe::Now() : 0;
+    u64 inner_sum = 0;
+    u64 last = 0;
+    // Charges the time since the previous mark to `sink`.
+    const auto mark = [&](std::atomic<u64>& sink) {
+        if (!probe) {
+            return;
+        }
+        const u64 now = Probe::Now();
+        sink.fetch_add(now - last, std::memory_order_relaxed);
+        inner_sum += now - last;
+        last = now;
+    };
     BufferOperations([&]() {
+        if (probe) {
+            last = Probe::Now();
+        }
         if (is_indexed) {
             UpdateIndexBuffer();
         }
+        mark(Probe::bc_upd_idx_ns);
         UpdateVertexBuffers();
+        mark(Probe::bc_upd_vtx_ns);
         UpdateTransformFeedbackBuffers();
+        mark(Probe::bc_upd_xfb_ns);
         for (size_t stage = 0; stage < NUM_STAGES; ++stage) {
             UpdateUniformBuffers(stage);
+            mark(Probe::bc_upd_ubo_ns);
             UpdateStorageBuffers(stage);
+            mark(Probe::bc_upd_sbo_ns);
             UpdateTextureBuffers(stage);
+            mark(Probe::bc_upd_tex_ns);
         }
         if (current_draw_indirect) {
             UpdateDrawIndirect();
         }
+        mark(Probe::bc_upd_ind_ns);
     });
+    if (probe) {
+        const u64 total = Probe::Now() - total_start;
+        Probe::bc_total_ns.fetch_add(total, std::memory_order_relaxed);
+        Probe::bc_calls.fetch_add(1, std::memory_order_relaxed);
+        // Lock acquisition and BufferOperations' own overhead (total minus the timed updates).
+        Probe::bc_upd_lock_ns.fetch_add(total > inner_sum ? total - inner_sum : 0,
+                                        std::memory_order_relaxed);
+    }
 }
 
 template <class P>

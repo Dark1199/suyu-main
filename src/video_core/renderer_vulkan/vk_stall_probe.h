@@ -47,6 +47,18 @@ inline std::atomic<u64> gpu_wait_ns{0}, gpu_wait_count{0};
 inline std::atomic<u64> cfg_sync_ns{0}, cfg_stage_ns{0}, cfg_fill_ns{0}, cfg_bind_ns{0},
     cfg_buffers_ns{0}, cfg_push_ns{0}, cfg_rt_ns{0};
 
+// Dark Switch: buffer-cache cost per draw (host side, summed over draws since last report).
+// upd_* = Update*Buffers (guest tracking, uploads, copies); bind_* = BindHost*Buffers.
+inline std::atomic<u64> bc_total_ns{0}, bc_calls{0}, bc_retry{0};
+inline std::atomic<u64> bc_upd_idx_ns{0}, bc_upd_vtx_ns{0}, bc_upd_xfb_ns{0}, bc_upd_ubo_ns{0},
+    bc_upd_sbo_ns{0}, bc_upd_tex_ns{0}, bc_upd_ind_ns{0}, bc_upd_lock_ns{0};
+inline std::atomic<u64> bc_bind_idx_ns{0}, bc_bind_vtx_ns{0}, bc_bind_xfb_ns{0},
+    bc_bind_ubo_ns{0}, bc_bind_sbo_ns{0}, bc_bind_tex_ns{0}, bc_bind_ind_ns{0};
+// Dark Switch: GPU-side execution time measured with vkCmdWriteTimestamp (one begin/end pair
+// per queue submission, begin = start of the upload cmdbuf, end = end of the main cmdbuf).
+inline std::atomic<u64> gpu_exec_ns{0}, gpu_exec_count{0}, gpu_exec_max_ns{0};
+inline std::atomic<u64> gpu_ts_dropped{0};
+
 // Time spent blocked in GPU waits, attributed to the calling source line.
 struct SiteStat {
     u64 ns = 0;
@@ -167,6 +179,17 @@ inline void ReportFrame() {
                       static_cast<unsigned long long>(sites[i].second.count));
         site_text += buf;
     }
+    const auto take = [](std::atomic<u64>& a) { return a.exchange(0, std::memory_order_relaxed); };
+    const u64 b_total = take(bc_total_ns), b_calls = take(bc_calls), b_retry = take(bc_retry);
+    const u64 u_idx = take(bc_upd_idx_ns), u_vtx = take(bc_upd_vtx_ns), u_xfb = take(bc_upd_xfb_ns),
+              u_ubo = take(bc_upd_ubo_ns), u_sbo = take(bc_upd_sbo_ns), u_tex = take(bc_upd_tex_ns),
+              u_ind = take(bc_upd_ind_ns), u_lock = take(bc_upd_lock_ns);
+    const u64 k_idx = take(bc_bind_idx_ns), k_vtx = take(bc_bind_vtx_ns),
+              k_xfb = take(bc_bind_xfb_ns), k_ubo = take(bc_bind_ubo_ns),
+              k_sbo = take(bc_bind_sbo_ns), k_tex = take(bc_bind_tex_ns),
+              k_ind = take(bc_bind_ind_ns);
+    const u64 g_ns = take(gpu_exec_ns), g_n = take(gpu_exec_count), g_max = take(gpu_exec_max_ns),
+              g_drop = take(gpu_ts_dropped);
     const u64 gpuwait = gpu_wait_ns.exchange(0, std::memory_order_relaxed);
     const u64 gpuwaits = gpu_wait_count.exchange(0, std::memory_order_relaxed);
     if (last_present && now - last_present > 45'000'000ULL) {
@@ -179,7 +202,12 @@ inline void ReportFrame() {
                  "configure={:.1f}ms record={:.1f}ms acquire={:.1f}ms present={:.1f}ms "
                  "frame_wait={:.1f}ms cpu_wait_on_gpu={:.1f}ms(n={}) "
                  "cfg[sync={:.1f} stage={:.1f} fill={:.1f} bind={:.1f} buf={:.1f} push={:.1f} "
-                 "rt={:.1f}]ms wait_sites[{}]",
+                 "rt={:.1f}]ms wait_sites[{}] "
+                 "bc[calls={} retry={} total={:.1f} upd(idx={:.1f} vtx={:.1f} xfb={:.1f} "
+                 "ubo={:.1f} sbo={:.1f} tex={:.1f} ind={:.1f} lock_other={:.1f}) "
+                 "bind(idx={:.1f} vtx={:.1f} xfb={:.1f} ubo={:.1f} sbo={:.1f} tex={:.1f} "
+                 "ind={:.1f})]ms "
+                 "gpu_exec[submits={} sum={:.1f}ms max={:.1f}ms dropped={}]",
                  milliseconds(now - last_present), milliseconds(idle), milliseconds(draw), draws,
                  milliseconds(schedw), milliseconds(build), builds, milliseconds(translate),
                  milliseconds(emit), shaders, milliseconds(pipeline_build), pipeline_builds,
@@ -187,7 +215,12 @@ inline void ReportFrame() {
                  milliseconds(record), milliseconds(acquire), milliseconds(present),
                  milliseconds(framew), milliseconds(gpuwait), gpuwaits, milliseconds(c_sync),
                  milliseconds(c_stage), milliseconds(c_fill), milliseconds(c_bind),
-                 milliseconds(c_buffers), milliseconds(c_push), milliseconds(c_rt), site_text);
+                 milliseconds(c_buffers), milliseconds(c_push), milliseconds(c_rt), site_text,
+                 b_calls, b_retry, milliseconds(b_total), milliseconds(u_idx), milliseconds(u_vtx),
+                 milliseconds(u_xfb), milliseconds(u_ubo), milliseconds(u_sbo), milliseconds(u_tex),
+                 milliseconds(u_ind), milliseconds(u_lock), milliseconds(k_idx), milliseconds(k_vtx),
+                 milliseconds(k_xfb), milliseconds(k_ubo), milliseconds(k_sbo), milliseconds(k_tex),
+                 milliseconds(k_ind), g_n, milliseconds(g_ns), milliseconds(g_max), g_drop);
     }
     last_present = now;
 }

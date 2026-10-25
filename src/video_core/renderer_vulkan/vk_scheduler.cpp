@@ -4,6 +4,7 @@
 // SPDX-FileCopyrightText: Copyright 2019 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <array>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -47,6 +48,32 @@ Scheduler::Scheduler(const Device& device_, StateTracker& state_tracker_)
     : device{device_}, state_tracker{state_tracker_},
       master_semaphore{std::make_unique<MasterSemaphore>(device)},
       command_pool{std::make_unique<CommandPool>(*master_semaphore, device)} {
+
+    // Dark Switch: GPU timestamp pool (only when the probe is on and the queue supports it).
+    if (StallProbe::Enabled() && device.GetTimestampValidBits() > 0 &&
+        device.GetTimestampPeriod() > 0.0f) {
+        try {
+            ts_pool = device.GetLogical().CreateQueryPool({
+                .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queryType = VK_QUERY_TYPE_TIMESTAMP,
+                .queryCount = TS_SLOTS * 2,
+                .pipelineStatistics = 0,
+            });
+            const u32 bits = device.GetTimestampValidBits();
+            ts_mask = bits >= 64 ? ~0ULL : ((1ULL << bits) - 1ULL);
+            ts_period_ns = static_cast<double>(device.GetTimestampPeriod());
+            ts_enabled = true;
+            LOG_INFO(Render_Vulkan, "GPU timestamps enabled: period={:.3f}ns valid_bits={}",
+                     ts_period_ns, bits);
+        } catch (const vk::Exception&) {
+            LOG_WARNING(Render_Vulkan, "GPU timestamp query pool creation failed; disabled");
+            ts_enabled = false;
+        }
+    } else {
+        LOG_INFO(Render_Vulkan, "GPU timestamps unavailable (probe off or unsupported)");
+    }
 
     AcquireNewChunk();
     AllocateWorkerCommandBuffer();
@@ -247,6 +274,43 @@ void Scheduler::AllocateWorkerCommandBuffer() {
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
         .pInheritanceInfo = nullptr,
     });
+
+    // Dark Switch: begin timestamp. The upload cmdbuf is submitted first, so this marks the
+    // moment the GPU starts executing this submission.
+    ts_current_slot = ~0u;
+    if (ts_enabled) {
+        if (ts_pending.size() + 2 < TS_SLOTS) {
+            ts_current_slot = ts_next_slot;
+            ts_next_slot = (ts_next_slot + 1) % TS_SLOTS;
+            current_upload_cmdbuf.ResetQueryPool(*ts_pool, ts_current_slot * 2, 2);
+            current_upload_cmdbuf.WriteTimestamp(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, *ts_pool,
+                                                 ts_current_slot * 2);
+        } else {
+            StallProbe::gpu_ts_dropped.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+}
+
+void Scheduler::HarvestGpuTimestamps() {
+    while (!ts_pending.empty()) {
+        const u32 slot = ts_pending.front();
+        std::array<u64, 4> result{}; // {begin, begin_avail, end, end_avail}
+        const VkResult res = device.GetLogical().GetQueryResults(
+            *ts_pool, slot * 2, 2, sizeof(result), result.data(), 2 * sizeof(u64),
+            VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
+        if (res != VK_SUCCESS || result[1] == 0 || result[3] == 0) {
+            break; // Not finished yet (or failed); retry on the next submission.
+        }
+        ts_pending.pop_front();
+        const u64 ticks = (result[2] - result[0]) & ts_mask;
+        const u64 ns = static_cast<u64>(static_cast<double>(ticks) * ts_period_ns);
+        StallProbe::gpu_exec_ns.fetch_add(ns, std::memory_order_relaxed);
+        StallProbe::gpu_exec_count.fetch_add(1, std::memory_order_relaxed);
+        u64 prev = StallProbe::gpu_exec_max_ns.load(std::memory_order_relaxed);
+        while (ns > prev && !StallProbe::gpu_exec_max_ns.compare_exchange_weak(
+                                prev, ns, std::memory_order_relaxed)) {
+        }
+    }
 }
 
 u64 Scheduler::SubmitExecution(VkSemaphore signal_semaphore, VkSemaphore wait_semaphore) {
@@ -264,6 +328,15 @@ u64 Scheduler::SubmitExecution(VkSemaphore signal_semaphore, VkSemaphore wait_se
         };
         upload_cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, WRITE_BARRIER);
         upload_cmdbuf.End();
+        // Dark Switch: end timestamp, then read back whatever has already finished.
+        if (ts_enabled) {
+            if (ts_current_slot != ~0u) {
+                cmdbuf.WriteTimestamp(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, *ts_pool,
+                                      ts_current_slot * 2 + 1);
+                ts_pending.push_back(ts_current_slot);
+            }
+            HarvestGpuTimestamps();
+        }
         cmdbuf.End();
 
         if (on_submit) {

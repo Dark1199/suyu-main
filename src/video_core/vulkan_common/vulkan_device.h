@@ -282,6 +282,16 @@ public:
         return graphics_family;
     }
 
+    /// Dark Switch: nanoseconds per GPU timestamp tick.
+    float GetTimestampPeriod() const {
+        return properties.properties.limits.timestampPeriod;
+    }
+
+    /// Dark Switch: valid timestamp bits of the graphics queue family (0 = unsupported).
+    u32 GetTimestampValidBits() const {
+        return timestamp_valid_bits;
+    }
+
     /// Returns main present queue family index.
     u32 GetPresentFamily() const {
         return present_family;
@@ -1029,6 +1039,7 @@ private:
     vk::Queue present_queue;     ///< Main present queue.
     u32 instance_version{};      ///< Vulkan instance version.
     u32 graphics_family{};       ///< Main graphics queue family index.
+    u32 timestamp_valid_bits{};  ///< Dark Switch: timestampValidBits of the graphics family.
     u32 present_family{};        ///< Main present queue family index.
 
     struct Extensions {

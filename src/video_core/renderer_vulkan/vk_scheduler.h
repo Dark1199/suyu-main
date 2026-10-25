@@ -7,6 +7,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <deque>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -260,6 +261,9 @@ private:
 
     void AllocateWorkerCommandBuffer();
 
+    /// Dark Switch: reads back finished GPU timestamp pairs (worker thread only).
+    void HarvestGpuTimestamps();
+
     u64 SubmitExecution(VkSemaphore signal_semaphore, VkSemaphore wait_semaphore);
 
     void AllocateNewContext();
@@ -283,6 +287,17 @@ private:
 
     std::unique_ptr<CommandChunk> chunk;
     std::function<void()> on_submit;
+
+    // Dark Switch: GPU timestamp instrumentation. Touched by the worker thread only
+    // (after construction), one begin/end pair per queue submission.
+    static constexpr u32 TS_SLOTS = 256;
+    vk::QueryPool ts_pool;
+    bool ts_enabled = false;
+    u32 ts_next_slot = 0;
+    u32 ts_current_slot = ~0u;
+    u64 ts_mask = ~0ULL;
+    double ts_period_ns = 0.0;
+    std::deque<u32> ts_pending;
 
     State state;
 

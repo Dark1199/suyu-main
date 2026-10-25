@@ -136,6 +136,7 @@ void Load(VkDevice device, DeviceDispatch& dld) noexcept {
     X(vkCmdSetStencilReference);
     X(vkCmdSetStencilWriteMask);
     X(vkCmdSetViewport);
+    X(vkCmdWriteTimestamp);
     X(vkCmdWaitEvents);
     X(vkCmdBindVertexBuffers2EXT);
     X(vkCmdSetCullModeEXT);
