@@ -102,6 +102,7 @@ object ExitReasonLogger {
                 val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
                 val out = FileOutputStream(cur, true)
                 val t0 = System.currentTimeMillis()
+                val prevTicks = HashMap<String, Long>()
                 while (true) {
                     val mem = readKv(
                         "/proc/meminfo",
@@ -126,7 +127,8 @@ object ExitReasonLogger {
                         " thr=" + (self["Threads"] ?: "?") +
                         " importance=" + st.importance + " trim=" + st.lastTrimLevel +
                         " oom_adj=" + oomAdj + " oom_score=" + oomScore +
-                        " thermal=" + thermal + " batt_c=" + tempC + "\n"
+                        " thermal=" + thermal + " batt_c=" + tempC +
+                        " " + cpuTop(prevTicks) + " " + freqInfo() + "\n"
                     out.write(line.toByteArray())
                     if (cur.length() > MAX_TRACE_BYTES) {
                         out.channel.truncate(0)
@@ -136,6 +138,55 @@ object ExitReasonLogger {
             } catch (_: Throwable) {
             }
         }.apply { isDaemon = true; name = "dark-memtrace" }.start()
+    }
+
+    /** Top 4 threads by CPU use over the last second, as name:percent-of-one-core. */
+    private fun cpuTop(prev: HashMap<String, Long>): String {
+        return try {
+            val dirs = File("/proc/self/task").listFiles() ?: return "cpu_top=?"
+            val cur = HashMap<String, Long>()
+            val usage = ArrayList<Pair<String, Long>>()
+            var total = 0L
+            for (d in dirs) {
+                val txt = try { File(d, "stat").readText() } catch (_: Throwable) { continue }
+                val open = txt.indexOf('(')
+                val close = txt.lastIndexOf(')')
+                if (open < 0 || close < open) continue
+                val name = txt.substring(open + 1, close)
+                val f = txt.substring(close + 2).split(' ')
+                val ticks = (f.getOrNull(11)?.toLongOrNull() ?: 0L) + (f.getOrNull(12)?.toLongOrNull() ?: 0L)
+                val key = d.name
+                cur[key] = ticks
+                val delta = ticks - (prev[key] ?: ticks)
+                if (delta > 0) {
+                    usage.add(Pair(name, delta))
+                    total += delta
+                }
+            }
+            prev.clear()
+            prev.putAll(cur)
+            val top = usage.sortedByDescending { it.second }.take(4)
+                .joinToString(",") { it.first.replace(' ', '_') + ":" + it.second }
+            "cpu_total=" + total + " cpu_top=" + top
+        } catch (_: Throwable) {
+            "cpu_top=?"
+        }
+    }
+
+    /** Current CPU core frequencies (MHz) and GPU load/frequency when the kernel exposes them. */
+    private fun freqInfo(): String {
+        val sb = StringBuilder("freq_mhz=")
+        for (i in 0 until 8) {
+            val v = try {
+                File("/sys/devices/system/cpu/cpu$i/cpufreq/scaling_cur_freq").readText().trim().toLong() / 1000
+            } catch (_: Throwable) {
+                -1L
+            }
+            sb.append(v).append(if (i < 7) "/" else "")
+        }
+        val gpuBusy = try { File("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage").readText().trim() } catch (_: Throwable) { "?" }
+        val gpuClk = try { File("/sys/class/kgsl/kgsl-3d0/gpuclk").readText().trim() } catch (_: Throwable) { "?" }
+        return sb.append(" gpu_busy=").append(gpuBusy).append(" gpuclk=").append(gpuClk).toString()
     }
 
     private fun readKv(path: String, keys: Set<String>): Map<String, String> {

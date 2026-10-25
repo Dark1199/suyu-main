@@ -155,6 +155,11 @@ void NPad::ControllerUpdate(Kernel::KernelCore& kernel, Core::HID::ControllerTri
         }
 
         auto& controller = controller_data[aruid_index][controller_idx];
+        if (controller.device == nullptr) {
+            // The applet resource of this aruid is flagged as assigned, but its npad entries have
+            // not been initialized yet (e.g. a system applet starting), so there is nothing to update.
+            continue;
+        }
         const auto is_connected = controller.device->IsConnected();
         const auto npad_type = controller.device->GetNpadStyleIndex();
         const auto npad_id = controller.device->GetNpadIdType();
