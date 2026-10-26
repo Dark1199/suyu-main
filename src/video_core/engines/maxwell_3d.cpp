@@ -18,6 +18,7 @@
 #include "video_core/gpu.h"
 #include "video_core/memory_manager.h"
 #include "video_core/rasterizer_interface.h"
+#include "video_core/renderer_vulkan/vk_stall_probe.h"
 #include "video_core/textures/texture.h"
 
 namespace Tegra::Engines {
@@ -282,6 +283,10 @@ u32 Maxwell3D::ProcessShadowRam(u32 method, u32 argument) {
 }
 
 void Maxwell3D::ConsumeSinkImpl(Core::System& system) {
+    // Dark Switch: queued register replay.
+    ::Vulkan::StallProbe::Accum sink_probe{::Vulkan::StallProbe::m3d_sink_ns,
+                                           &::Vulkan::StallProbe::m3d_sink_n};
+    ::Vulkan::StallProbe::m3d_sink_entries.fetch_add(method_sink.size(), std::memory_order_relaxed);
     const auto control = shadow_state.shadow_ram_control;
     if (control == Regs::ShadowRamControl::Track || control == Regs::ShadowRamControl::TrackWithFilter) {
         for (auto [method, value] : method_sink) {
@@ -373,6 +378,9 @@ void Maxwell3D::ProcessMethodCall(u32 method, u32 argument, u32 nonshadow_argume
 }
 
 void Maxwell3D::CallMacroMethod(Core::System& system, u32 method, const std::vector<u32>& parameters) {
+    // Dark Switch: macro execution time (includes any draws the macro issues).
+    ::Vulkan::StallProbe::Accum macro_probe{::Vulkan::StallProbe::m3d_macro_ns,
+                                            &::Vulkan::StallProbe::m3d_macro_n};
     // Reset the current macro.
     executing_macro = 0;
 

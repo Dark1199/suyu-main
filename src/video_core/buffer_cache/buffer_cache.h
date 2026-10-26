@@ -923,7 +923,17 @@ void BufferCache<P>::BindHostVertexBuffers() {
                 host_bindings.sizes.push_back(binding.size);
                 host_bindings.strides.push_back(stride);
             }
-            runtime.BindVertexBuffers(host_bindings);
+            if (host_bindings.buffers.size() == 1) {
+                // Dark Switch: a single bound buffer (the common case) uses the compact
+                // single-binding record instead of moving ~1.3 KB of HostBindings into the
+                // command chunk on every draw.
+                BindHostVertexBuffer(host_bindings.min_index, *host_bindings.buffers[0],
+                                     static_cast<u32>(host_bindings.offsets[0]),
+                                     static_cast<u32>(host_bindings.sizes[0]),
+                                     static_cast<u32>(host_bindings.strides[0]));
+            } else {
+                runtime.BindVertexBuffers(host_bindings);
+            }
         }
         if (probe) {
             const u64 end = Probe::Now();

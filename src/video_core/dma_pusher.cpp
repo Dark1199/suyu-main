@@ -58,7 +58,11 @@ bool DmaPusher::Step() {
     }
 
     if (prefetch_size > 0) {
-        ProcessCommands(command_list.prefetch_command_list);
+        {
+            ::Vulkan::StallProbe::Accum process_probe{::Vulkan::StallProbe::dp_process_ns};
+            ::Vulkan::StallProbe::dp_words.fetch_add(prefetch_size, std::memory_order_relaxed);
+            ProcessCommands(command_list.prefetch_command_list);
+        }
         dma_pushbuffer.pop();
         return true;
     }
@@ -80,12 +84,27 @@ bool DmaPusher::Step() {
 
     if (header.size > 0) {
         const bool use_safe = Settings::IsDMALevelDefault() ? Settings::IsGPULevelHigh() : Settings::IsDMALevelSafe();
+        namespace Probe = ::Vulkan::StallProbe;
+        const bool probe = Probe::Enabled();
+        const u64 t0 = probe ? Probe::Now() : 0;
+        Probe::dp_lists.fetch_add(1, std::memory_order_relaxed);
+        Probe::dp_words.fetch_add(header.size, std::memory_order_relaxed);
         if (use_safe) {
             Tegra::Memory::GpuGuestMemory<Tegra::CommandHeader, Tegra::Memory::GuestMemoryFlags::SafeRead>headers(memory_manager, dma_state.dma_get, header.size, &command_headers);
+            const u64 t1 = probe ? Probe::Now() : 0;
             ProcessCommands(headers);
+            if (probe) {
+                Probe::dp_read_ns.fetch_add(t1 - t0, std::memory_order_relaxed);
+                Probe::dp_process_ns.fetch_add(Probe::Now() - t1, std::memory_order_relaxed);
+            }
         } else {
             Tegra::Memory::GpuGuestMemory<Tegra::CommandHeader, Tegra::Memory::GuestMemoryFlags::UnsafeRead>headers(memory_manager, dma_state.dma_get, header.size, &command_headers);
+            const u64 t1 = probe ? Probe::Now() : 0;
             ProcessCommands(headers);
+            if (probe) {
+                Probe::dp_read_ns.fetch_add(t1 - t0, std::memory_order_relaxed);
+                Probe::dp_process_ns.fetch_add(Probe::Now() - t1, std::memory_order_relaxed);
+            }
         }
     }
 

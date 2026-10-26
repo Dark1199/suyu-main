@@ -65,6 +65,10 @@ inline std::atomic<u64> ubo_fast_ns{0}, ubo_fast_n{0}, ubo_fast_bytes{0}, ubo_ca
 // (1=nv01 2=kepler_compute 3=maxwell3d 4=fermi2d 5=maxwell_dma 6=kepler_memory), 7=other.
 inline std::atomic<u64> gt_submit_ns{0}, gt_tick_ns{0}, gt_flush_ns{0}, gt_inval_ns{0}, gt_cmds{0};
 inline std::array<std::atomic<u64>, 8> eng_ns{};
+// Dark Switch: inside the GPU thread's Maxwell3D / command-list handling.
+inline std::atomic<u64> m3d_macro_ns{0}, m3d_macro_n{0}, m3d_sink_ns{0}, m3d_sink_n{0},
+    m3d_sink_entries{0};
+inline std::atomic<u64> dp_read_ns{0}, dp_process_ns{0}, dp_words{0}, dp_lists{0};
 // Dark Switch: GPU-side execution time measured with vkCmdWriteTimestamp (one begin/end pair
 // per queue submission, begin = start of the upload cmdbuf, end = end of the main cmdbuf).
 inline std::atomic<u64> gpu_exec_ns{0}, gpu_exec_count{0}, gpu_exec_max_ns{0};
@@ -231,6 +235,10 @@ inline void ReportFrame() {
               uc_ns = take(ubo_cached_ns), uc_n = take(ubo_cached_n);
     const u64 t_submit = take(gt_submit_ns), t_tick = take(gt_tick_ns), t_flush = take(gt_flush_ns),
               t_inval = take(gt_inval_ns), t_cmds = take(gt_cmds);
+    const u64 mc_ns = take(m3d_macro_ns), mc_n = take(m3d_macro_n), sk_ns = take(m3d_sink_ns),
+              sk_n = take(m3d_sink_n), sk_e = take(m3d_sink_entries);
+    const u64 dp_r = take(dp_read_ns), dp_p = take(dp_process_ns), dp_w = take(dp_words),
+              dp_l = take(dp_lists);
     std::array<u64, 8> eng{};
     for (size_t i = 0; i < eng.size(); ++i) eng[i] = take(eng_ns[i]);
     const u64 gpuwait = gpu_wait_ns.exchange(0, std::memory_order_relaxed);
@@ -256,7 +264,9 @@ inline void ReportFrame() {
                  "ubo[fast_n={} fast={:.1f}ms/{}KB cached_n={} cached={:.1f}ms] "
                  "gpu_thread[submit={:.1f} tick={:.1f} flush={:.1f} inval={:.1f} cmds={} | "
                  "puller={:.1f} m3d={:.1f} compute={:.1f} dma={:.1f} f2d={:.1f} kmem={:.1f} "
-                 "nv01={:.1f}]ms",
+                 "nv01={:.1f}]ms "
+                 "m3d[macro={:.1f}(n={}) sink={:.1f}(n={} entries={})]ms "
+                 "dp[read={:.1f} process={:.1f}]ms(lists={} words={})",
                  milliseconds(now - last_present), milliseconds(idle), milliseconds(draw), draws,
                  milliseconds(schedw), milliseconds(build), builds, milliseconds(translate),
                  milliseconds(emit), shaders, milliseconds(pipeline_build), pipeline_builds,
@@ -276,7 +286,8 @@ inline void ReportFrame() {
                  milliseconds(t_tick), milliseconds(t_flush), milliseconds(t_inval), t_cmds,
                  milliseconds(eng[0]), milliseconds(eng[3]), milliseconds(eng[2]),
                  milliseconds(eng[5]), milliseconds(eng[4]), milliseconds(eng[6]),
-                 milliseconds(eng[1]));
+                 milliseconds(eng[1]), milliseconds(mc_ns), mc_n, milliseconds(sk_ns), sk_n, sk_e,
+                 milliseconds(dp_r), milliseconds(dp_p), dp_l, dp_w);
     }
     last_present = now;
 }
