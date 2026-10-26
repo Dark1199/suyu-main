@@ -138,6 +138,33 @@ void DmaPusher::ProcessCommands(std::span<const CommandHeader> commands) {
             dma_state.is_last_call = true;
             index += max_write;
         } else if (dma_state.method_count) {
+            // Dark Switch: a run of increasing methods that none of the engine's execution mask
+            // handles immediately is only appended to method_sink by CallMethod. Do that in one
+            // pass instead of one full dispatch per word. Behavior is identical: same pairs,
+            // same order, same final dma_state (method advances, count drops, index moves).
+            if (!dma_increment_once && dma_state.method >= non_puller_methods) {
+                if (auto* const sub = subchannels[dma_state.subchannel]) {
+                    const size_t max_run = (std::min<size_t>)(dma_state.method_count,
+                                                              commands.size() - index);
+                    size_t run = 0;
+                    while (run < max_run && dma_state.method + run < sub->execution_mask.size() &&
+                           !sub->execution_mask[dma_state.method + run]) {
+                        ++run;
+                    }
+                    if (run > 1) {
+                        for (size_t k = 0; k < run; ++k) {
+                            sub->method_sink.emplace_back(static_cast<u32>(dma_state.method + k),
+                                                          commands[index + k].argument);
+                        }
+                        ::Vulkan::StallProbe::dp_batched_words.fetch_add(
+                            run, std::memory_order_relaxed);
+                        dma_state.method += static_cast<u32>(run);
+                        dma_state.method_count -= static_cast<u32>(run);
+                        index += run;
+                        continue;
+                    }
+                }
+            }
             auto const command_header = commands[index]; //can copy
             dma_state.dma_word_offset = u32(index * sizeof(u32));
             dma_state.is_last_call = dma_state.method_count <= 1;
@@ -192,7 +219,7 @@ void DmaPusher::CallMethod(u32 argument) {
     const u32 eng_slot = dma_state.method < non_puller_methods
                              ? 0u
                              : 1u + static_cast<u32>(subchannel_type[dma_state.subchannel]);
-    ::Vulkan::StallProbe::Accum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
+    ::Vulkan::StallProbe::SampledAccum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
     if (dma_state.method < non_puller_methods) {
         puller.CallPullerMethod(*this, Engines::Puller::MethodCall{
             dma_state.method,
@@ -216,7 +243,7 @@ void DmaPusher::CallMultiMethod(const u32* base_start, u32 num_methods) {
     const u32 eng_slot = dma_state.method < non_puller_methods
                              ? 0u
                              : 1u + static_cast<u32>(subchannel_type[dma_state.subchannel]);
-    ::Vulkan::StallProbe::Accum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
+    ::Vulkan::StallProbe::SampledAccum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
     if (dma_state.method < non_puller_methods) {
         puller.CallMultiMethod(*this, dma_state.method, dma_state.subchannel, base_start, num_methods, dma_state.method_count);
     } else {

@@ -873,6 +873,8 @@ void BufferCache<P>::BindHostVertexBuffers() {
         u32 skipped = 0;
         u32 synced = 0;
         u32 uploads = 0;
+        u64 mark_ns = 0;
+        u64 mark_bytes = 0;
         HostBindings<typename P::Buffer> host_bindings;
         bool any_valid{false};
         auto& flags = maxwell3d->dirty.flags;
@@ -916,7 +918,12 @@ void BufferCache<P>::BindHostVertexBuffers() {
 
                 const u32 stride = maxwell3d->regs.vertex_streams[index].stride;
                 const u32 offset = buffer.Offset(binding.device_addr);
+                const u64 m0 = probe ? Probe::Now() : 0;
                 buffer.MarkUsage(offset, binding.size);
+                if (probe) {
+                    mark_ns += Probe::Now() - m0;
+                    mark_bytes += binding.size;
+                }
 
                 host_bindings.buffers.push_back(&buffer);
                 host_bindings.offsets.push_back(offset);
@@ -944,6 +951,8 @@ void BufferCache<P>::BindHostVertexBuffers() {
             Probe::bc_vtx_touch_ns.fetch_add(touch_ns, std::memory_order_relaxed);
             Probe::bc_vtx_sync_ns.fetch_add(sync_ns, std::memory_order_relaxed);
             Probe::bc_vtx_loop_ns.fetch_add(end - loop_start, std::memory_order_relaxed);
+            Probe::bc_vtx_mark_ns.fetch_add(mark_ns, std::memory_order_relaxed);
+            Probe::bc_vtx_bytes.fetch_add(mark_bytes, std::memory_order_relaxed);
             Probe::bc_vtx_build_ns.fetch_add(end - build_start, std::memory_order_relaxed);
         }
     }

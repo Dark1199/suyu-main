@@ -57,6 +57,7 @@ inline std::atomic<u64> bc_bind_idx_ns{0}, bc_bind_vtx_ns{0}, bc_bind_xfb_ns{0},
     bc_bind_ubo_ns{0}, bc_bind_sbo_ns{0}, bc_bind_tex_ns{0}, bc_bind_ind_ns{0};
 // Dark Switch: inside the slow (non-optimized) vertex bind path.
 inline std::atomic<u64> bc_vtx_slots{0}, bc_vtx_skipped{0}, bc_vtx_synced{0}, bc_vtx_uploads{0};
+inline std::atomic<u64> bc_vtx_mark_ns{0}, bc_vtx_bytes{0}, dp_batched_words{0};
 inline std::atomic<u64> bc_vtx_touch_ns{0}, bc_vtx_sync_ns{0}, bc_vtx_build_ns{0}, bc_vtx_loop_ns{0};
 // Dark Switch: uniform bind paths (streamed "fast" copy versus cached buffer).
 inline std::atomic<u64> ubo_fast_ns{0}, ubo_fast_n{0}, ubo_fast_bytes{0}, ubo_cached_ns{0},
@@ -169,6 +170,30 @@ private:
     std::atomic<u64>* count_ = nullptr;
 };
 
+// Times 1 in 16 calls and scales by 16. For very hot call sites (per register write) where a clock
+// read on every call would cost more than the code being measured.
+class SampledAccum {
+public:
+    explicit SampledAccum(std::atomic<u64>& sink)
+        : sink_{sink}, sampled_{Enabled() && ((++Counter() & 15U) == 0)},
+          start_{sampled_ ? Now() : 0} {}
+    ~SampledAccum() {
+        if (sampled_) {
+            sink_.fetch_add((Now() - start_) * 16, std::memory_order_relaxed);
+        }
+    }
+    SampledAccum(const SampledAccum&) = delete;
+    SampledAccum& operator=(const SampledAccum&) = delete;
+private:
+    static u32& Counter() {
+        static thread_local u32 counter = 0;
+        return counter;
+    }
+    std::atomic<u64>& sink_;
+    bool sampled_;
+    u64 start_;
+};
+
 inline void ReportFrame() {
     if (!Enabled()) return;
     // Present normally has one caller; TLS also avoids a plain-data race if
@@ -231,6 +256,8 @@ inline void ReportFrame() {
               v_sync = take(bc_vtx_synced), v_up = take(bc_vtx_uploads),
               v_touch = take(bc_vtx_touch_ns), v_syncns = take(bc_vtx_sync_ns),
               v_build = take(bc_vtx_build_ns), v_loop = take(bc_vtx_loop_ns);
+    const u64 v_mark = take(bc_vtx_mark_ns), v_bytes = take(bc_vtx_bytes),
+              dp_batched = take(dp_batched_words);
     const u64 uf_ns = take(ubo_fast_ns), uf_n = take(ubo_fast_n), uf_b = take(ubo_fast_bytes),
               uc_ns = take(ubo_cached_ns), uc_n = take(ubo_cached_n);
     const u64 t_submit = take(gt_submit_ns), t_tick = take(gt_tick_ns), t_flush = take(gt_flush_ns),
@@ -260,13 +287,13 @@ inline void ReportFrame() {
                  "ind={:.1f})]ms "
                  "gpu_exec[submits={} sum={:.1f}ms max={:.1f}ms dropped={}] "
                  "vtx[slots={} skipped={} synced={} uploads={} touch={:.1f} sync={:.1f} "
-                 "build={:.1f} loop={:.1f}]ms "
+                 "build={:.1f} loop={:.1f} mark={:.1f} bytes={}KB]ms "
                  "ubo[fast_n={} fast={:.1f}ms/{}KB cached_n={} cached={:.1f}ms] "
                  "gpu_thread[submit={:.1f} tick={:.1f} flush={:.1f} inval={:.1f} cmds={} | "
                  "puller={:.1f} m3d={:.1f} compute={:.1f} dma={:.1f} f2d={:.1f} kmem={:.1f} "
                  "nv01={:.1f}]ms "
                  "m3d[macro={:.1f}(n={}) sink={:.1f}(n={} entries={})]ms "
-                 "dp[read={:.1f} process={:.1f}]ms(lists={} words={})",
+                 "dp[read={:.1f} process={:.1f}]ms(lists={} words={} batched={})",
                  milliseconds(now - last_present), milliseconds(idle), milliseconds(draw), draws,
                  milliseconds(schedw), milliseconds(build), builds, milliseconds(translate),
                  milliseconds(emit), shaders, milliseconds(pipeline_build), pipeline_builds,
@@ -281,13 +308,14 @@ inline void ReportFrame() {
                  milliseconds(k_xfb), milliseconds(k_ubo), milliseconds(k_sbo), milliseconds(k_tex),
                  milliseconds(k_ind), g_n, milliseconds(g_ns), milliseconds(g_max), g_drop, v_slots,
                  v_skip, v_sync, v_up, milliseconds(v_touch), milliseconds(v_syncns),
-                 milliseconds(v_build), milliseconds(v_loop), uf_n, milliseconds(uf_ns),
+                 milliseconds(v_build), milliseconds(v_loop), milliseconds(v_mark), v_bytes / 1024,
+                 uf_n, milliseconds(uf_ns),
                  uf_b / 1024, uc_n, milliseconds(uc_ns), milliseconds(t_submit),
                  milliseconds(t_tick), milliseconds(t_flush), milliseconds(t_inval), t_cmds,
                  milliseconds(eng[0]), milliseconds(eng[3]), milliseconds(eng[2]),
                  milliseconds(eng[5]), milliseconds(eng[4]), milliseconds(eng[6]),
                  milliseconds(eng[1]), milliseconds(mc_ns), mc_n, milliseconds(sk_ns), sk_n, sk_e,
-                 milliseconds(dp_r), milliseconds(dp_p), dp_l, dp_w);
+                 milliseconds(dp_r), milliseconds(dp_p), dp_l, dp_w, dp_batched);
     }
     last_present = now;
 }
