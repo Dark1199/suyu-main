@@ -43,13 +43,18 @@ void ThreadManager::StartThread(VideoCore::RendererBase& renderer, Core::Fronten
             if (stop_token.stop_requested()) {
                 break;
             }
+            ::Vulkan::StallProbe::gt_cmds.fetch_add(1, std::memory_order_relaxed);
             if (auto* submit_list = std::get_if<SubmitListCommand>(&next.data)) {
+                ::Vulkan::StallProbe::Accum busy{::Vulkan::StallProbe::gt_submit_ns};
                 scheduler.Push(system.GPU(), submit_list->channel, std::move(submit_list->entries));
             } else if (std::holds_alternative<GPUTickCommand>(next.data)) {
+                ::Vulkan::StallProbe::Accum busy{::Vulkan::StallProbe::gt_tick_ns};
                 system.GPU().TickWork();
             } else if (const auto* flush = std::get_if<FlushRegionCommand>(&next.data)) {
+                ::Vulkan::StallProbe::Accum busy{::Vulkan::StallProbe::gt_flush_ns};
                 renderer.ReadRasterizer()->FlushRegion(flush->addr, flush->size);
             } else if (const auto* invalidate = std::get_if<InvalidateRegionCommand>(&next.data)) {
+                ::Vulkan::StallProbe::Accum busy{::Vulkan::StallProbe::gt_inval_ns};
                 renderer.ReadRasterizer()->OnCacheInvalidation(invalidate->addr, invalidate->size);
             } else {
                 ASSERT(false);

@@ -865,14 +865,36 @@ void BufferCache<P>::BindHostVertexBuffers() {
         }
         flush_bindings();
     } else {
+        namespace Probe = ::Vulkan::StallProbe;
+        const bool probe = Probe::Enabled();
+        const u64 loop_start = probe ? Probe::Now() : 0;
+        u64 touch_ns = 0;
+        u64 sync_ns = 0;
+        u32 skipped = 0;
+        u32 synced = 0;
+        u32 uploads = 0;
         HostBindings<typename P::Buffer> host_bindings;
         bool any_valid{false};
         auto& flags = maxwell3d->dirty.flags;
         for (u32 index = 0; index < NUM_VERTEX_BUFFERS; ++index) {
             const Binding& binding = channel_state->vertex_buffers[index];
-            Buffer& buffer = slot_buffers[binding.buffer_id];
-            TouchBuffer(buffer, binding.buffer_id);
-            SynchronizeBuffer(buffer, binding.device_addr, binding.size);
+            // Dark Switch: an empty slot has no host buffer to touch or upload into, so skip the
+            // LRU touch and the upload-range query (SynchronizeBuffer on the null buffer).
+            if (binding.buffer_id != NULL_BUFFER_ID) {
+                Buffer& buffer = slot_buffers[binding.buffer_id];
+                const u64 t0 = probe ? Probe::Now() : 0;
+                TouchBuffer(buffer, binding.buffer_id);
+                const u64 t1 = probe ? Probe::Now() : 0;
+                const bool clean = SynchronizeBuffer(buffer, binding.device_addr, binding.size);
+                if (probe) {
+                    touch_ns += t1 - t0;
+                    sync_ns += Probe::Now() - t1;
+                }
+                ++synced;
+                uploads += clean ? 0u : 1u;
+            } else {
+                ++skipped;
+            }
             if (!flags[Dirty::VertexBuffer0 + index]) {
                 continue;
             }
@@ -883,6 +905,7 @@ void BufferCache<P>::BindHostVertexBuffers() {
             any_valid = true;
         }
 
+        const u64 build_start = probe ? Probe::Now() : 0;
         if (any_valid) {
             host_bindings.max_index++;
             for (u32 index = host_bindings.min_index; index < host_bindings.max_index; index++) {
@@ -901,6 +924,17 @@ void BufferCache<P>::BindHostVertexBuffers() {
                 host_bindings.strides.push_back(stride);
             }
             runtime.BindVertexBuffers(host_bindings);
+        }
+        if (probe) {
+            const u64 end = Probe::Now();
+            Probe::bc_vtx_slots.fetch_add(NUM_VERTEX_BUFFERS, std::memory_order_relaxed);
+            Probe::bc_vtx_skipped.fetch_add(skipped, std::memory_order_relaxed);
+            Probe::bc_vtx_synced.fetch_add(synced, std::memory_order_relaxed);
+            Probe::bc_vtx_uploads.fetch_add(uploads, std::memory_order_relaxed);
+            Probe::bc_vtx_touch_ns.fetch_add(touch_ns, std::memory_order_relaxed);
+            Probe::bc_vtx_sync_ns.fetch_add(sync_ns, std::memory_order_relaxed);
+            Probe::bc_vtx_loop_ns.fetch_add(end - loop_start, std::memory_order_relaxed);
+            Probe::bc_vtx_build_ns.fetch_add(end - build_start, std::memory_order_relaxed);
         }
     }
 }
@@ -937,6 +971,7 @@ void BufferCache<P>::BindHostGraphicsUniformBuffers(size_t stage) {
 template <class P>
 void BufferCache<P>::BindHostGraphicsUniformBuffer(size_t stage, u32 index, u32 binding_index, bool needs_bind) {
     ++channel_state->uniform_cache_shots[0];
+    ::Vulkan::StallProbe::PathTimer path_timer;
     const Binding& binding = channel_state->uniform_buffers[stage][index];
     const DAddr device_addr = binding.device_addr;
     const u32 size = (std::min)(binding.size, (*channel_state->uniform_buffer_sizes)[stage][index]);
@@ -959,6 +994,8 @@ void BufferCache<P>::BindHostGraphicsUniformBuffer(size_t stage, u32 index, u32 
         || (has_host_buffer && size <= channel_state->uniform_buffer_skip_cache_size
             && !memory_tracker.IsRegionGpuModified(device_addr, size));
     if (use_fast_buffer) {
+        path_timer.Set(::Vulkan::StallProbe::ubo_fast_ns, ::Vulkan::StallProbe::ubo_fast_n);
+        ::Vulkan::StallProbe::ubo_fast_bytes.fetch_add(size, std::memory_order_relaxed);
         if constexpr (IS_OPENGL) {
             if (runtime.HasFastBufferSubData()) {
                 // Fast path for Nvidia
@@ -984,6 +1021,7 @@ void BufferCache<P>::BindHostGraphicsUniformBuffer(size_t stage, u32 index, u32 
         return;
     }
     // Classic cached path
+    path_timer.Set(::Vulkan::StallProbe::ubo_cached_ns, ::Vulkan::StallProbe::ubo_cached_n);
     if (SynchronizeBuffer(buffer, device_addr, size)) {
         ++channel_state->uniform_cache_hits[0];
     }

@@ -11,6 +11,7 @@
 #include "video_core/gpu.h"
 #include "video_core/guest_memory.h"
 #include "video_core/memory_manager.h"
+#include "video_core/renderer_vulkan/vk_stall_probe.h"
 #include "video_core/rasterizer_interface.h"
 
 namespace Tegra {
@@ -168,6 +169,11 @@ void DmaPusher::SetState(const CommandHeader& command_header) {
 }
 
 void DmaPusher::CallMethod(u32 argument) {
+    // Dark Switch: per-engine time on the GPU thread (nested inside gt_submit).
+    const u32 eng_slot = dma_state.method < non_puller_methods
+                             ? 0u
+                             : 1u + static_cast<u32>(subchannel_type[dma_state.subchannel]);
+    ::Vulkan::StallProbe::Accum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
     if (dma_state.method < non_puller_methods) {
         puller.CallPullerMethod(*this, Engines::Puller::MethodCall{
             dma_state.method,
@@ -188,6 +194,10 @@ void DmaPusher::CallMethod(u32 argument) {
 }
 
 void DmaPusher::CallMultiMethod(const u32* base_start, u32 num_methods) {
+    const u32 eng_slot = dma_state.method < non_puller_methods
+                             ? 0u
+                             : 1u + static_cast<u32>(subchannel_type[dma_state.subchannel]);
+    ::Vulkan::StallProbe::Accum eng_probe{::Vulkan::StallProbe::eng_ns[eng_slot < 8 ? eng_slot : 7]};
     if (dma_state.method < non_puller_methods) {
         puller.CallMultiMethod(*this, dma_state.method, dma_state.subchannel, base_start, num_methods, dma_state.method_count);
     } else {

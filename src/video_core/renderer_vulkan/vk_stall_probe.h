@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -54,6 +55,16 @@ inline std::atomic<u64> bc_upd_idx_ns{0}, bc_upd_vtx_ns{0}, bc_upd_xfb_ns{0}, bc
     bc_upd_sbo_ns{0}, bc_upd_tex_ns{0}, bc_upd_ind_ns{0}, bc_upd_lock_ns{0};
 inline std::atomic<u64> bc_bind_idx_ns{0}, bc_bind_vtx_ns{0}, bc_bind_xfb_ns{0},
     bc_bind_ubo_ns{0}, bc_bind_sbo_ns{0}, bc_bind_tex_ns{0}, bc_bind_ind_ns{0};
+// Dark Switch: inside the slow (non-optimized) vertex bind path.
+inline std::atomic<u64> bc_vtx_slots{0}, bc_vtx_skipped{0}, bc_vtx_synced{0}, bc_vtx_uploads{0};
+inline std::atomic<u64> bc_vtx_touch_ns{0}, bc_vtx_sync_ns{0}, bc_vtx_build_ns{0}, bc_vtx_loop_ns{0};
+// Dark Switch: uniform bind paths (streamed "fast" copy versus cached buffer).
+inline std::atomic<u64> ubo_fast_ns{0}, ubo_fast_n{0}, ubo_fast_bytes{0}, ubo_cached_ns{0},
+    ubo_cached_n{0};
+// Dark Switch: emulated GPU thread accounting. Engine slots: 0=puller, 1+EngineTypes
+// (1=nv01 2=kepler_compute 3=maxwell3d 4=fermi2d 5=maxwell_dma 6=kepler_memory), 7=other.
+inline std::atomic<u64> gt_submit_ns{0}, gt_tick_ns{0}, gt_flush_ns{0}, gt_inval_ns{0}, gt_cmds{0};
+inline std::array<std::atomic<u64>, 8> eng_ns{};
 // Dark Switch: GPU-side execution time measured with vkCmdWriteTimestamp (one begin/end pair
 // per queue submission, begin = start of the upload cmdbuf, end = end of the main cmdbuf).
 inline std::atomic<u64> gpu_exec_ns{0}, gpu_exec_count{0}, gpu_exec_max_ns{0};
@@ -132,6 +143,28 @@ private:
     u64 start_;
 };
 
+// Charges the scope's duration to whichever sink was chosen with Set() (none = not counted).
+class PathTimer {
+public:
+    PathTimer() : enabled_{Enabled()}, start_{enabled_ ? Now() : 0} {}
+    void Set(std::atomic<u64>& ns, std::atomic<u64>& count) {
+        ns_ = &ns;
+        count_ = &count;
+    }
+    ~PathTimer() {
+        if (!enabled_ || !ns_) return;
+        ns_->fetch_add(Now() - start_, std::memory_order_relaxed);
+        count_->fetch_add(1, std::memory_order_relaxed);
+    }
+    PathTimer(const PathTimer&) = delete;
+    PathTimer& operator=(const PathTimer&) = delete;
+private:
+    bool enabled_;
+    u64 start_;
+    std::atomic<u64>* ns_ = nullptr;
+    std::atomic<u64>* count_ = nullptr;
+};
+
 inline void ReportFrame() {
     if (!Enabled()) return;
     // Present normally has one caller; TLS also avoids a plain-data race if
@@ -190,6 +223,16 @@ inline void ReportFrame() {
               k_ind = take(bc_bind_ind_ns);
     const u64 g_ns = take(gpu_exec_ns), g_n = take(gpu_exec_count), g_max = take(gpu_exec_max_ns),
               g_drop = take(gpu_ts_dropped);
+    const u64 v_slots = take(bc_vtx_slots), v_skip = take(bc_vtx_skipped),
+              v_sync = take(bc_vtx_synced), v_up = take(bc_vtx_uploads),
+              v_touch = take(bc_vtx_touch_ns), v_syncns = take(bc_vtx_sync_ns),
+              v_build = take(bc_vtx_build_ns), v_loop = take(bc_vtx_loop_ns);
+    const u64 uf_ns = take(ubo_fast_ns), uf_n = take(ubo_fast_n), uf_b = take(ubo_fast_bytes),
+              uc_ns = take(ubo_cached_ns), uc_n = take(ubo_cached_n);
+    const u64 t_submit = take(gt_submit_ns), t_tick = take(gt_tick_ns), t_flush = take(gt_flush_ns),
+              t_inval = take(gt_inval_ns), t_cmds = take(gt_cmds);
+    std::array<u64, 8> eng{};
+    for (size_t i = 0; i < eng.size(); ++i) eng[i] = take(eng_ns[i]);
     const u64 gpuwait = gpu_wait_ns.exchange(0, std::memory_order_relaxed);
     const u64 gpuwaits = gpu_wait_count.exchange(0, std::memory_order_relaxed);
     if (last_present && now - last_present > 45'000'000ULL) {
@@ -207,7 +250,13 @@ inline void ReportFrame() {
                  "ubo={:.1f} sbo={:.1f} tex={:.1f} ind={:.1f} lock_other={:.1f}) "
                  "bind(idx={:.1f} vtx={:.1f} xfb={:.1f} ubo={:.1f} sbo={:.1f} tex={:.1f} "
                  "ind={:.1f})]ms "
-                 "gpu_exec[submits={} sum={:.1f}ms max={:.1f}ms dropped={}]",
+                 "gpu_exec[submits={} sum={:.1f}ms max={:.1f}ms dropped={}] "
+                 "vtx[slots={} skipped={} synced={} uploads={} touch={:.1f} sync={:.1f} "
+                 "build={:.1f} loop={:.1f}]ms "
+                 "ubo[fast_n={} fast={:.1f}ms/{}KB cached_n={} cached={:.1f}ms] "
+                 "gpu_thread[submit={:.1f} tick={:.1f} flush={:.1f} inval={:.1f} cmds={} | "
+                 "puller={:.1f} m3d={:.1f} compute={:.1f} dma={:.1f} f2d={:.1f} kmem={:.1f} "
+                 "nv01={:.1f}]ms",
                  milliseconds(now - last_present), milliseconds(idle), milliseconds(draw), draws,
                  milliseconds(schedw), milliseconds(build), builds, milliseconds(translate),
                  milliseconds(emit), shaders, milliseconds(pipeline_build), pipeline_builds,
@@ -220,7 +269,14 @@ inline void ReportFrame() {
                  milliseconds(u_xfb), milliseconds(u_ubo), milliseconds(u_sbo), milliseconds(u_tex),
                  milliseconds(u_ind), milliseconds(u_lock), milliseconds(k_idx), milliseconds(k_vtx),
                  milliseconds(k_xfb), milliseconds(k_ubo), milliseconds(k_sbo), milliseconds(k_tex),
-                 milliseconds(k_ind), g_n, milliseconds(g_ns), milliseconds(g_max), g_drop);
+                 milliseconds(k_ind), g_n, milliseconds(g_ns), milliseconds(g_max), g_drop, v_slots,
+                 v_skip, v_sync, v_up, milliseconds(v_touch), milliseconds(v_syncns),
+                 milliseconds(v_build), milliseconds(v_loop), uf_n, milliseconds(uf_ns),
+                 uf_b / 1024, uc_n, milliseconds(uc_ns), milliseconds(t_submit),
+                 milliseconds(t_tick), milliseconds(t_flush), milliseconds(t_inval), t_cmds,
+                 milliseconds(eng[0]), milliseconds(eng[3]), milliseconds(eng[2]),
+                 milliseconds(eng[5]), milliseconds(eng[4]), milliseconds(eng[6]),
+                 milliseconds(eng[1]));
     }
     last_present = now;
 }
