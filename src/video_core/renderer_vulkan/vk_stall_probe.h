@@ -22,13 +22,10 @@ namespace Vulkan::StallProbe {
 inline bool Enabled() {
     static const bool enabled = [] {
         const char* value = std::getenv("SUYU_STALL_PROBE");
-#ifdef __ANDROID__
-        // Dark Switch: on by default on Android so slow frames are always explained in the log.
-        // Set SUYU_STALL_PROBE=0 to disable.
-        return !(value && *value == '0');
-#else
+        // Dark Switch: off by default so normal runs carry no probe cost. Set SUYU_STALL_PROBE=1
+        // (on Android: add it as a custom variable in the Freedreno environment settings) to
+        // get the STALL / bc / gpu_exec / gpu_thread telemetry.
         return value && *value && *value != '0';
-#endif
     }();
     return enabled;
 }
